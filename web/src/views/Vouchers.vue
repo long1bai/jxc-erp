@@ -107,6 +107,7 @@ import PageHeader from '../components/PageHeader.vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { financeApi as api } from '../api/finance'
+import request from '../utils/request'
 
 const route = useRoute()
 const tab = ref('receipts')
@@ -145,8 +146,8 @@ async function load(p) {
   if (p) page.value = p
   loading.value = true
   try {
-    const path = isReceipt.value ? '/vouchers/receipts' : '/vouchers/payments'
-    const res = await api.vouchers(path, { keyword: keyword.value, page: page.value, size: size.value })
+    const type = isReceipt.value ? 'receipts' : 'payments'
+    const res = await api.vouchers(type, { keyword: keyword.value, page: page.value, size: size.value })
     items.value = res.data.items
     total.value = Number(res.data.total)
   } catch (e) {
@@ -159,8 +160,10 @@ async function load(p) {
 async function openCreate() {
   Object.assign(form, { partyId: null, amount: 100, date: today(), method: '转账', remark: '' })
   try {
-    const path = isReceipt.value ? '/customers' : '/suppliers'
-    const res = await api.vouchers(path, { page: 1, size: 100 })
+    // 收款单往来单位=客户，付款单=供应商
+    const res = isReceipt.value
+      ? await request.get('/customers', { params: { page: 1, size: 100 } })
+      : await request.get('/suppliers', { params: { page: 1, size: 100 } })
     parties.value = res.data.items
   } catch { parties.value = [] }
   createVisible.value = true
@@ -202,8 +205,8 @@ async function remove(row) {
     await ElMessageBox.confirm(`确定删除${label}「${row[isReceipt.value ? 'rv_no' : 'pv_no']}」？`, '删除确认', { type: 'warning' })
   } catch { return }
   try {
-    const path = isReceipt.value ? '/vouchers/receipts' : '/vouchers/payments'
-    await api.deleteVoucher(path, row.id)
+    const type = isReceipt.value ? 'receipts' : 'payments'
+    await api.deleteVoucher(type, row.id)
     ElMessage.success('已删除')
     load()
   } catch (e) {
