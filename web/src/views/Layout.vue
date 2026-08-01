@@ -39,13 +39,6 @@
           </el-button>
           <div class="header-title">jxc进销存系统</div>
         </div>
-        <!-- 顶部快捷功能条（象过河功能导航条） -->
-        <div class="quick-bar" v-if="!isMobile && quickItems.length">
-          <div v-for="q in quickItems" :key="q.path" class="quick-item" @click="router.push(q.path)">
-            <el-icon size="15"><component :is="q.icon" /></el-icon>
-            <span>{{ q.title }}</span>
-          </div>
-        </div>
         <div class="header-right">
           <span class="user">
             <el-icon><UserFilled /></el-icon> {{ user.displayName || user.username }}
@@ -61,17 +54,16 @@
         <el-main class="main">
           <router-view />
         </el-main>
-        <!-- 右侧查询面板（象过河相关查询统计） -->
-        <el-aside v-if="!isMobile && reportGroups.length" width="212px" class="query-panel">
-          <div class="qp-title">相关查询统计</div>
-          <div v-for="g in reportGroups" :key="g.title" class="qp-group">
-            <div class="qp-group-title">{{ g.title }}</div>
-            <div v-for="it in g.items" :key="it.path" class="qp-item" @click="router.push(it.path)">
-              <el-icon size="14"><component :is="it.icon || 'Document'" /></el-icon>
-              <span>{{ it.title }}</span>
+        <!-- 右侧实时统计面板（按当前模块显示相关指标） -->
+        <el-aside v-if="!isMobile && statCards.length" width="212px" class="query-panel">
+          <div class="qp-title">实时统计</div>
+          <div v-for="c in statCards" :key="c.label" class="qp-stat" @click="c.path && router.push(c.path)">
+            <div class="qp-stat-num">{{ c.value }}</div>
+            <div class="qp-stat-label">
+              <el-icon size="12"><component :is="c.icon" /></el-icon> {{ c.label }}
             </div>
           </div>
-          <div v-if="!reportGroups.length" class="qp-empty">选中左侧模块查看相关功能</div>
+          <div class="qp-hint">数据每 60 秒刷新 · 点击数字跳转</div>
         </el-aside>
       </div>
 
@@ -172,29 +164,49 @@ function syncModule() {
 }
 watch(() => route.path, syncModule, { immediate: true })
 
-// ===== 顶部快捷功能条（常用功能一键直达，按角色自动过滤）=====
-const QUICK_PATHS = ['/orders', '/purchases', '/stock/inventory',
-  '/finance/vouchers?tab=receipts', '/finance/vouchers?tab=payments', '/work/reports']
-const quickItems = computed(() => {
-  const all = []
-  const walk = (items) => { for (const m of items) { all.push(m); if (m.children) walk(m.children) } }
-  walk(menus.value)
-  return QUICK_PATHS.map((p) => all.find((m) => m.path === p)).filter(Boolean)
+// ===== 右侧实时统计面板（按当前模块显示相关指标，数据复用 /api/dashboard/data）=====
+const dashData = ref(null)
+const statCards = computed(() => {
+  const d = dashData.value?.data
+  if (!d) return []
+  const stats = d.stats || {}
+  // 模块 → 指标卡片（value / label / icon / 跳转路径）
+  const cards = {
+    trade: [
+      { value: stats.pending_orders ?? 0, label: '待出货订单', icon: 'Timer', path: '/orders' },
+      { value: stats.partial_orders ?? 0, label: '部分出货', icon: 'Loading', path: '/orders' },
+      { value: stats.full_unshipped ?? 0, label: '未发货总量', icon: 'Van', path: '/deliveries' },
+    ],
+    'stock-report': [
+      { value: stats.stock_alerts ?? 0, label: '库存预警', icon: 'Warning', path: '/stock/inventory' },
+      { value: stats.month_sales ?? 0, label: '本月销售额', icon: 'TrendCharts', path: '/sales-reports' },
+      { value: stats.month_purchases ?? 0, label: '本月采购额', icon: 'ShoppingCart', path: '/purchase-reports' },
+    ],
+    finance: [
+      { value: d.receivables?.length ?? 0, label: '待收款项', icon: 'Money', path: '/finance/receivables' },
+      { value: d.payables?.length ?? 0, label: '待付款项', icon: 'Wallet', path: '/finance/payables' },
+      { value: stats.month_receipts ?? 0, label: '本月收款', icon: 'TrendCharts', path: '/finance/account-reports' },
+    ],
+    production: [
+      { value: stats.month_deliveries ?? 0, label: '本月送货', icon: 'Van', path: '/deliveries' },
+      { value: stats.month_new_orders ?? 0, label: '本月新订单', icon: 'Document', path: '/orders' },
+    ],
+    work: [
+      { value: stats.month_deliveries ?? 0, label: '本月送货量', icon: 'Van', path: '/deliveries' },
+      { value: stats.stock_alerts ?? 0, label: '库存预警', icon: 'Warning', path: '/stock/inventory' },
+    ],
+  }
+  return cards[selectedModule.value] || []
 })
-
-// ===== 右侧查询面板（当前模块的 功能操作 + 查询统计）=====
-const reportGroups = computed(() => {
-  if (!selectedModule.value) return []
-  const g = modGroups.value.find((x) => x.path === selectedModule.value)
-  if (!g) return []
-  const kids = g.children || []
-  const query = kids.filter((k) => /报表|统计|查询|分析|盘点|流水|对账/.test(k.title))
-  const other = kids.filter((k) => !/报表|统计|查询|分析|盘点|流水|对账/.test(k.title))
-  const groups = []
-  if (other.length) groups.push({ title: '功能操作', items: other })
-  if (query.length) groups.push({ title: '查询统计', items: query })
-  return groups
-})
+// 拉取统计（复用仪表盘缓存接口，60 秒内不重算）
+async function loadDash() {
+  try {
+    const res = await request.get('/dashboard/data')
+    dashData.value = res
+  } catch { /* 忽略 */ }
+}
+watch(() => route.path, () => { if (statCards.value.length) loadDash() })
+onMounted(loadDash)
 
 async function logout() {
   try {
@@ -301,34 +313,6 @@ async function logout() {
   color: #303133;
   white-space: nowrap;
 }
-/* 顶部快捷功能条 */
-.quick-bar {
-  flex: 1;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  overflow-x: auto;
-  padding: 0 8px;
-}
-.quick-item {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 12px;
-  color: #606266;
-  background: #f5f7fa;
-  border: 1px solid #e4e7ed;
-  border-radius: 14px;
-  padding: 3px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all .15s;
-}
-.quick-item:hover {
-  color: #fff;
-  background: #409eff;
-  border-color: #409eff;
-}
 .header-right {
   display: flex;
   align-items: center;
@@ -369,32 +353,38 @@ async function logout() {
   padding-bottom: 8px;
   border-bottom: 1px solid #ebeef5;
 }
-.qp-group { margin-bottom: 10px; }
-.qp-group-title {
-  font-size: 11px;
-  color: #909399;
-  margin-bottom: 4px;
-  padding-left: 2px;
-}
-.qp-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: #409eff;
-  padding: 5px 8px;
-  border-radius: 6px;
+.qp-stat {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: #f5f7fa;
+  border: 1px solid #ebeef5;
   cursor: pointer;
   transition: all .15s;
 }
-.qp-item:hover {
+.qp-stat:hover {
   background: #ecf5ff;
+  border-color: #b3d8ff;
 }
-.qp-empty {
-  font-size: 12px;
+.qp-stat-num {
+  font-size: 20px;
+  font-weight: 700;
+  color: #409eff;
+  line-height: 1.2;
+}
+.qp-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #606266;
+  margin-top: 2px;
+}
+.qp-hint {
+  font-size: 10px;
   color: #c0c4cc;
   text-align: center;
-  padding: 20px 0;
+  padding: 4px 0;
 }
 /* 手机底部导航 */
 .bottom-nav {
