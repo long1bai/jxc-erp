@@ -26,7 +26,7 @@
 - 数据库：MySQL（库名 `yawei_erp`，root 无密码，`db/init.sql` 建表）
 - AI：阿里云 DashScope（qwen-plus 报价助手、qwen3-vl-plus 拍照识别），Key 配置沿用旧 Python 版 `I:\yawei-erp\photo_config.json` / `ai_config.json`
 
-旧 Python 版（FastAPI + SQLite）在 `I:\yawei-erp`，端口 8000，仍在用。**新系统数据与口径需对照旧版核验**（预警数/待处理订单/状态分布等）。
+旧 Python 版（FastAPI + SQLite）在 `I:\yawei-erp`，端口 8000，**已于 2026-08-01 切换后停用**（数据已完整迁入 v2 并核验一致；如需回查历史数据可重启，勿再录单）。
 
 ## 启动与构建
 
