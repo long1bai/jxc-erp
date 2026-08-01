@@ -6,6 +6,7 @@ export const tradeApi = {
   suppliers: (params) => request.get('/suppliers', { params }),
   materials: (params) => request.get('/materials', { params }),
   warehouses: (params) => request.get('/warehouses', { params }),
+  customers: (params) => request.get('/customers', { params }),
   // 客户订单
   orders: (params) => request.get('/orders', { params }),
   orderDetail: (id) => request.get(`/orders/${id}`),

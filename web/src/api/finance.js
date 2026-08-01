@@ -6,6 +6,7 @@ export const financeApi = {
   receivableSummary: (params) => request.get('/finance/receivable-summary', { params }),
   receivableMonthly: (params) => request.get('/finance/receivable-monthly', { params }),
   payableSummary: (params) => request.get('/finance/payable-summary', { params }),
+  payableMonthly: (params) => request.get('/finance/payable-monthly', { params }),
   aging: (params) => request.get('/finance/aging', { params }),
   docList: (params) => request.get('/finance/doc-list', { params }),
 
