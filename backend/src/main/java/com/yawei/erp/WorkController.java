@@ -296,9 +296,13 @@ public class WorkController {
         String reportDate = st.contains(" ") ? st.substring(0, 10) : today();
 
         Long reportId = mapper.nextId();
-        mapper.reportStart(reportId, employeeId, empName, groupId, groupName == null ? "" : groupName,
+        int n = mapper.reportStart(reportId, employeeId, empName, groupId, groupName == null ? "" : groupName,
                 processId, procName, st, remark, reportDate,
                 materialId, materialName);
+        if (n == 0) {
+            // 原子插入未命中（并发下已有进行中报工），与上面预检结果一致时也走友好提示
+            return ApiResponse.fail("该员工已有进行中的报工，请先结束");
+        }
 
         saveImages(reportId, images);
         return ApiResponse.ok(Map.of("id", reportId));

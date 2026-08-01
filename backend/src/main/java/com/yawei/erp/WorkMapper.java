@@ -134,11 +134,14 @@ public interface WorkMapper {
 
     // ============ 打卡报工（开始/结束/取消） ============
 
-    /** 开始报工：插入 status='in_progress' 记录，数量先为 0 */
+    /** 开始报工：插入 status='in_progress' 记录，数量先为 0
+     *  原子防重：INSERT...SELECT...WHERE NOT EXISTS（并发下同员工仅 1 条成功，避免 TOCTOU） */
     @Insert("INSERT INTO work_reports (id, employee_id, employee_name, group_id, group_name, process_id, process_name, " +
             "quantity, start_time, end_time, duration, remark, image_count, status, report_date, material_id, material_name) " +
-            "VALUES (#{id}, #{employeeId}, #{employeeName}, #{groupId}, #{groupName}, #{processId}, #{processName}, " +
-            "0, #{startTime}, NULL, '', #{remark}, 0, 'in_progress', #{reportDate}, #{materialId}, #{materialName})")
+            "SELECT #{id}, #{employeeId}, #{employeeName}, #{groupId}, #{groupName}, #{processId}, #{processName}, " +
+            "0, #{startTime}, NULL, '', #{remark}, 0, 'in_progress', #{reportDate}, #{materialId}, #{materialName} " +
+            "FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM work_reports " +
+            "WHERE employee_id = #{employeeId} AND status = 'in_progress' AND deleted = 0)")
     int reportStart(@Param("id") Long id, @Param("employeeId") Long employeeId, @Param("employeeName") String employeeName,
                     @Param("groupId") Long groupId, @Param("groupName") String groupName,
                     @Param("processId") Long processId, @Param("processName") String processName,
