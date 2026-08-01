@@ -317,3 +317,25 @@
 2. 清理脚本的序列重同步必须基于 `MAX(现存单号)`（**含软删行**），保证下一号 = MAX+1 永不复用
 3. 历史软删单据（deleted=1 且 remark 含"验证"等）会永久占住单号唯一键——发现即清理
 
+## 6.20 安全修复：全局鉴权拦截器（2026-08-01）
+
+### 漏洞背景（实测确认）
+- 安全扫描 172 个 /api 端点：**171 个无 token 可直接访问**（仅 1 个返回 401）
+- 根因：OperationLogInterceptor 只记日志**不鉴权**（preHandle 直接 return true），鉴权散落在各 Controller 方法且漏覆盖绝大部分
+- 后果：无登录可读全部业务数据（客户/财务/日志/备份列表）+ **POST /api/backup/restore 可触发数据库回滚**；配合花生壳外网映射（9087hzlk8738.vicp.fun→8080）= 外网任意人可读全厂数据
+
+### 修复方案（已上线）
+- 新增 `AuthInterceptor`：覆盖 `/api/**`，仅排除 `/api/auth/login`；从 Authorization 头提取 token（Bearer 或裸 token）→ `SessionStore.verify` → 无效返回 401 JSON `{"success":false,"error":"未登录或登录已过期"}`
+- 注册顺序：AuthInterceptor **先于** OperationLogInterceptor（未登录请求不记日志）
+- CORS 预检（OPTIONS）放行
+- 前端 `request.js` 已处理 401（清会话跳登录），无需改前端
+
+### 验证结果
+- 无 token 扫描：172 端点全部拦截（117 直接 401 + 54 个路径参数端点真实格式 401 + login 放行）
+- e2e 168/168 全过（带 token 正常流程零破坏）
+- 压测 11/11 全过
+
+### 遗留小瑕疵（非安全）
+- 不存在的路径（如 GET /api/customers/{id}——CustomerController 无此映射）返回 500 而非 404：NoResourceFoundException 在静态资源 fallback 路径未走 @ExceptionHandler。无数据泄露，内网可接受，后续可修
+- 越权测试（普通用户调 admin 接口）尚未做——后续补
+

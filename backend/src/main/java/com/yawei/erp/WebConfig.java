@@ -18,6 +18,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Autowired
     private OperationLogInterceptor operationLogInterceptor;
 
+    @Autowired
+    private AuthInterceptor authInterceptor;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
@@ -33,9 +36,12 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations("file:" + uploadDir + "/");
     }
 
-    /** 操作日志拦截器：记录所有写操作（POST/PUT/DELETE），日志查询接口自身不记录 */
+    /** 拦截器链：先鉴权（AuthInterceptor，未登录 401）→ 再记操作日志（写操作才记） */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/api/**")
+                .excludePathPatterns("/api/auth/login");
         registry.addInterceptor(operationLogInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns("/api/logs/**", "/api/menus", "/api/dashboard/**", "/uploads/**");
