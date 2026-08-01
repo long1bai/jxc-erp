@@ -12,6 +12,8 @@ app:
   mysqldump-path: C:/mysql/8.0.28/bin/mysqldump.exe  # mysqldump 可执行文件路径
   ai-config: I:/yawei-erp/ai_config.json     # AI 报价助手配置文件
   photo-config: I:/yawei-erp/photo_config.json  # 拍照识别配置文件
+  jwt-secret-file: I:/yawei-erp/jwt_secret.txt  # JWT 签名密钥（不存在自动生成，重启不变；密钥不进 git）
+  jwt-expire-days: 7                          # 登录 token 有效期（天）
   legacy-web-public: I:/yawei-erp-java/web/public  # 旧版上传路径（清理历史文件用，新部署不再产生）
 
 spring:

@@ -353,3 +353,22 @@
 - 越权复测：普通用户调 8 个 admin 接口全部 403；admin 正常操作 6 项全部通过
 - e2e 168/168 全过 + 压测 11/11 全过（零破坏）
 
+
+## 6.22 会话机制升级：内存 Map → JWT 无状态（2026-08-01）
+
+### 背景
+- 原 `SessionStore` = ConcurrentHashMap 内存会话，**后端/断电重启后所有 token 失效，全员被迫重新登录**（断电恢复后实测 401）
+- 决策：按用户要求改企业标准做法 JWT 无状态（选项对比：DB 持久化 vs JWT vs 保持现状，用户选 JWT）
+
+### 实现（backend/.../SessionStore.java）
+- HS256 对称签名（JDK `javax.crypto.Mac`，零新依赖），payload 含 id/username/displayName/role/iat/exp
+- **密钥持久化**：`app.jwt-secret-file`（默认 `I:/yawei-erp/jwt_secret.txt`），首次启动自动生成 32 字节随机密钥落盘，**重启不变 → 旧 token 跨重启有效**
+- **过期时间**：`app.jwt-expire-days`（默认 7 天），过期后 verify 返回 null → 401
+- 公共接口 `create/verify/destroy` 签名不变 → **全部调用点（AuthController/CatalogController/AuthInterceptor/LogController/OperationLogInterceptor/ApprovalController/StockTransferController）零改动**
+- `destroy()` 为 no-op（无状态无法吊销）；登出由前端清 localStorage 完成。若将来需要"踢人/封号立即生效"：短过期 + 黑名单表
+
+### 验证
+- 登录拿 JWT（3 段结构）→ 业务接口 200
+- **重启后端 → 同一 token 仍 200（核心：断电/重启不用重登）**
+- 篡改 token → 401；无 token → 401；/auth/me 正常
+- e2e 180/180 全绿 + 压测 11/11 全过
