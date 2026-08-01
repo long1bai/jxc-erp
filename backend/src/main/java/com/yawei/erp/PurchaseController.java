@@ -28,7 +28,7 @@ public class PurchaseController {
                           BigDecimal quantity, BigDecimal unitPrice) {}
 
     public record CreateReq(Long supplierId, String poDate, String remark, Long warehouseId,
-                            List<ItemReq> items) {}
+                            String handler, List<ItemReq> items) {}
 
     @GetMapping
     public Map<String, Object> list(
@@ -64,7 +64,7 @@ public class PurchaseController {
         }
         mapper.purchaseInsert(poNo, req.supplierId(),
                 req.poDate() == null || req.poDate().isBlank() ? today() : req.poDate(),
-                totalQty, totalAmt, req.remark());
+                req.handler(), totalQty, totalAmt, req.remark());
         Long poId = mapper.lastPurchaseId(poNo);
         int sort = 0;
         for (var it : req.items()) {

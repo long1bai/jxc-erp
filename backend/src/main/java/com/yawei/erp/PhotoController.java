@@ -161,7 +161,7 @@ public class PhotoController {
             totalAmt = totalAmt.add(amt);
         }
         String poDate = req.poDate() == null || req.poDate().isBlank() ? today() : req.poDate();
-        trade.purchaseInsert(poNo, req.supplierId(), poDate, totalQty, totalAmt, req.remark());
+        trade.purchaseInsert(poNo, req.supplierId(), poDate, "", totalQty, totalAmt, req.remark());
         Long poId = trade.lastPurchaseId(poNo);
         int sort = 0;
         for (var it : clean) {

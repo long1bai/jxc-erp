@@ -32,10 +32,11 @@ public interface TradeMapper {
     @Select("SELECT * FROM purchase_items WHERE po_id = #{id} AND deleted = 0 ORDER BY sort_order, id")
     List<Map<String, Object>> purchaseItems(@Param("id") Long id);
 
-    @Insert("INSERT INTO purchase_orders (po_no, supplier_id, po_date, total_quantity, total_amount, remark) " +
-            "VALUES (#{poNo}, #{supplierId}, #{poDate}, #{totalQty}, #{totalAmt}, #{remark})")
+    @Insert("INSERT INTO purchase_orders (po_no, supplier_id, po_date, handler, total_quantity, total_amount, remark) " +
+            "VALUES (#{poNo}, #{supplierId}, #{poDate}, #{handler}, #{totalQty}, #{totalAmt}, #{remark})")
     int purchaseInsert(@Param("poNo") String poNo, @Param("supplierId") Long supplierId,
-                       @Param("poDate") String poDate, @Param("totalQty") java.math.BigDecimal totalQty,
+                       @Param("poDate") String poDate, @Param("handler") String handler,
+                       @Param("totalQty") java.math.BigDecimal totalQty,
                        @Param("totalAmt") java.math.BigDecimal totalAmt, @Param("remark") String remark);
 
     @Insert("INSERT INTO purchase_items (po_id, material_id, material_name, spec, unit, quantity, unit_price, amount, sort_order) " +
@@ -131,10 +132,11 @@ public interface TradeMapper {
     List<Map<String, Object>> deliveryItems(@Param("id") Long id);
 
     @Insert("INSERT INTO delivery_notes (dn_no, customer_id, customer_name, customer_order_id, dn_date, " +
-            "total_quantity, total_amount, remark) VALUES (#{dnNo}, #{customerId}, #{customerName}, #{orderId}, #{dnDate}, #{totalQty}, #{totalAmt}, #{remark})")
+            "handler, total_quantity, total_amount, remark) VALUES (#{dnNo}, #{customerId}, #{customerName}, #{orderId}, #{dnDate}, #{handler}, #{totalQty}, #{totalAmt}, #{remark})")
     int deliveryInsert(@Param("dnNo") String dnNo, @Param("customerId") Long customerId,
                        @Param("customerName") String customerName, @Param("orderId") Long orderId,
-                       @Param("dnDate") String dnDate, @Param("totalQty") java.math.BigDecimal totalQty,
+                       @Param("dnDate") String dnDate, @Param("handler") String handler,
+                       @Param("totalQty") java.math.BigDecimal totalQty,
                        @Param("totalAmt") java.math.BigDecimal totalAmt, @Param("remark") String remark);
 
     @Insert("INSERT INTO delivery_items (dn_id, material_id, material_name, spec, unit, " +
@@ -239,6 +241,16 @@ public interface TradeMapper {
             "<if test='to != null and to != \"\"'> AND po.po_date &lt;= #{to}</if>" +
             "</where> GROUP BY po.supplier_id, s.name ORDER BY total_amount DESC</script>")
     List<Map<String, Object>> purchaseStatsBySupplier(@Param("from") String from, @Param("to") String to);
+
+    /** 采购统计（按经手人） */
+    @Select("<script>SELECT COALESCE(NULLIF(po.handler,''),'未填写') AS handler, " +
+            "COUNT(*) AS order_count, SUM(po.total_quantity) AS total_quantity, SUM(po.total_amount) AS total_amount " +
+            "FROM purchase_orders po " +
+            "<where>po.deleted = 0 " +
+            "<if test='from != null and from != \"\"'> AND po.po_date &gt;= #{from}</if>" +
+            "<if test='to != null and to != \"\"'> AND po.po_date &lt;= #{to}</if>" +
+            "</where> GROUP BY po.handler ORDER BY total_amount DESC</script>")
+    List<Map<String, Object>> purchaseStatsByHandler(@Param("from") String from, @Param("to") String to);
 
     /** 采购统计（按商品）：数量/金额/均价 */
     @Select("<script>SELECT pi.material_id, COALESCE(m.name,'') AS material_name, COALESCE(m.spec,'') AS spec, " +

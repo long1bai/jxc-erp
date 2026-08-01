@@ -53,6 +53,17 @@
             </el-table-column>
           </el-table>
         </div>
+        <div class="stat-block">
+          <h4>按经手人</h4>
+          <el-table :data="stats.handler" size="small" stripe max-height="240">
+            <el-table-column prop="handler" label="经手人" min-width="120" sortable />
+            <el-table-column prop="order_count" label="单数" width="80" align="right" sortable />
+            <el-table-column prop="total_quantity" label="数量" width="110" align="right" sortable />
+            <el-table-column prop="total_amount" label="金额" width="130" align="right" sortable>
+              <template #default="{ row }">￥{{ fmt(row.total_amount) }}</template>
+            </el-table-column>
+          </el-table>
+        </div>
       </el-tab-pane>
 
       <!-- ============ 毛利 ============ -->
@@ -62,10 +73,13 @@
           <el-table-column prop="sales" label="销售额" width="120" align="right" sortable>
             <template #default="{ row }">￥{{ fmt(row.sales) }}</template>
           </el-table-column>
-          <el-table-column prop="cost" label="成本" width="120" align="right" sortable>
+          <el-table-column prop="cost" label="物料成本" width="120" align="right" sortable>
             <template #default="{ row }">￥{{ fmt(row.cost) }}</template>
           </el-table-column>
-          <el-table-column prop="profit" label="毛利" width="120" align="right" sortable>
+          <el-table-column prop="labor_cost" label="人工成本" width="120" align="right" sortable>
+            <template #default="{ row }">￥{{ fmt(row.labor_cost) }}</template>
+          </el-table-column>
+          <el-table-column prop="profit" label="毛利(扣人工)" width="130" align="right" sortable>
             <template #default="{ row }">￥{{ fmt(row.profit) }}</template>
           </el-table-column>
           <el-table-column prop="margin_rate" label="毛利率" width="100" align="right" sortable>
@@ -178,7 +192,7 @@ const range = ref(defaultMonthRange())
 const detailKw = ref('')
 const detailItems = ref([])
 const detailLoading = ref(false)
-const stats = reactive({ customer: [], material: [], warehouse: [] })
+const stats = reactive({ customer: [], material: [], warehouse: [], handler: [] })
 const profit = reactive({ items: [] })
 const monthly = reactive({ summary: [], customer: [], material: [] })
 const returns = reactive({ customer: [], material: [] })
@@ -210,10 +224,11 @@ function params() {
 
 async function loadAll() {
   const p = params()
-  const [s1, s2, s3, g, m1, m2, m3, r1, r2] = await Promise.all([
+  const [s1, s2, s3, s4, g, m1, m2, m3, r1, r2] = await Promise.all([
     request.get('/sales-stats/by-customer', { params: p }),
     request.get('/sales-stats/by-material', { params: p }),
     request.get('/sales-stats/by-warehouse', { params: p }),
+    request.get('/sales-stats/by-handler', { params: p }),
     request.get('/sales-stats/gross-profit', { params: p }),
     request.get('/sales-stats/monthly', { params: p }),
     request.get('/sales-stats/customer-monthly', { params: p }),
@@ -224,6 +239,7 @@ async function loadAll() {
   stats.customer = s1.data.items
   stats.material = s2.data.items
   stats.warehouse = s3.data.items
+  stats.handler = s4.data.items
   profit.items = g.data.items
   monthly.summary = m1.data.items
   monthly.customer = m2.data.items

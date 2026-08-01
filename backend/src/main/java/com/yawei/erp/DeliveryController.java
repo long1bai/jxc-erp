@@ -30,7 +30,7 @@ public class DeliveryController {
                           BigDecimal quantity, BigDecimal unitPrice) {}
 
     public record CreateReq(Long customerId, Long orderId, String deliveryDate, String remark,
-                            List<ItemReq> items) {}
+                            String handler, List<ItemReq> items) {}
 
     @GetMapping
     public Map<String, Object> list(
@@ -99,7 +99,7 @@ public class DeliveryController {
         String cname = sys.customerName(req.customerId());
         mapper.deliveryInsert(dnNo, req.customerId(), cname == null ? "" : cname, orderId,
                 req.deliveryDate() == null || req.deliveryDate().isBlank() ? today() : req.deliveryDate(),
-                totalQty, totalAmt, req.remark());
+                req.handler(), totalQty, totalAmt, req.remark());
         Long dnId = mapper.lastDeliveryId(dnNo);
 
         int sort = 0;

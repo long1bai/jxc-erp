@@ -122,6 +122,16 @@ public interface ReportMapper {
             "</where> GROUP BY dn.customer_id, c.name ORDER BY total_amount DESC</script>")
     List<Map<String, Object>> salesStatsByCustomer(@Param("from") String from, @Param("to") String to);
 
+    /** 销售统计（按经手人） */
+    @Select("<script>SELECT COALESCE(NULLIF(dn.handler,''),'未填写') AS handler, COUNT(*) AS order_count, " +
+            "SUM(dn.total_quantity) AS total_quantity, SUM(dn.total_amount) AS total_amount " +
+            "FROM delivery_notes dn " +
+            "<where>dn.deleted = 0 " +
+            "<if test='from != null and from != \"\"'> AND dn.dn_date &gt;= #{from}</if>" +
+            "<if test='to != null and to != \"\"'> AND dn.dn_date &lt;= #{to}</if>" +
+            "</where> GROUP BY dn.handler ORDER BY total_amount DESC</script>")
+    List<Map<String, Object>> salesStatsByHandler(@Param("from") String from, @Param("to") String to);
+
     /** 销售统计（按商品，含毛利） */
     @Select("<script>SELECT di.material_id, COALESCE(m.name,'') AS material_name, COALESCE(m.spec,'') AS spec, " +
             "SUM(di.quantity) AS total_quantity, SUM(di.amount) AS total_amount, " +
@@ -144,11 +154,21 @@ public interface ReportMapper {
             "</where> GROUP BY dn.warehouse_id, w.name ORDER BY total_amount DESC</script>")
     List<Map<String, Object>> salesStatsByWarehouse(@Param("from") String from, @Param("to") String to);
 
-    /** 毛利汇总（按客户：销售额/成本/毛利/毛利率） */
+    /** 毛利汇总（按客户：销售额/物料成本/人工成本/毛利/毛利率）
+     *  人工成本 = 售出数量 × 该成品单件人工成本（报工工资合计 ÷ 报工数量，按 material_id 归集） */
     @Select("<script>SELECT dn.customer_id, COALESCE(c.name,'') AS customer_name, " +
             "SUM(di.amount) AS sales, SUM(di.quantity * COALESCE(m.purchase_price,0)) AS cost, " +
-            "SUM(di.amount - di.quantity * COALESCE(m.purchase_price,0)) AS profit, " +
-            "CASE WHEN SUM(di.amount) = 0 THEN 0 ELSE ROUND(SUM(di.amount - di.quantity * COALESCE(m.purchase_price,0)) / SUM(di.amount) * 100, 1) END AS margin_rate " +
+            "SUM(di.quantity * COALESCE((SELECT SUM(wr.quantity * COALESCE(p.unit_price,0)) / NULLIF(SUM(wr.quantity),0) " +
+            "FROM work_reports wr JOIN processes p ON p.id = wr.process_id " +
+            "WHERE wr.material_id = di.material_id AND wr.deleted = 0 AND wr.status = 'completed'),0)) AS labor_cost, " +
+            "SUM(di.amount - di.quantity * COALESCE(m.purchase_price,0) " +
+            "  - di.quantity * COALESCE((SELECT SUM(wr.quantity * COALESCE(p.unit_price,0)) / NULLIF(SUM(wr.quantity),0) " +
+            "FROM work_reports wr JOIN processes p ON p.id = wr.process_id " +
+            "WHERE wr.material_id = di.material_id AND wr.deleted = 0 AND wr.status = 'completed'),0)) AS profit, " +
+            "CASE WHEN SUM(di.amount) = 0 THEN 0 ELSE ROUND(SUM(di.amount - di.quantity * COALESCE(m.purchase_price,0) " +
+            "  - di.quantity * COALESCE((SELECT SUM(wr.quantity * COALESCE(p.unit_price,0)) / NULLIF(SUM(wr.quantity),0) " +
+            "FROM work_reports wr JOIN processes p ON p.id = wr.process_id " +
+            "WHERE wr.material_id = di.material_id AND wr.deleted = 0 AND wr.status = 'completed'),0)) / SUM(di.amount) * 100, 1) END AS margin_rate " +
             "FROM delivery_items di JOIN delivery_notes dn ON dn.id = di.dn_id " +
             "LEFT JOIN customers c ON c.id = dn.customer_id " +
             "LEFT JOIN materials m ON m.id = di.material_id " +

@@ -83,7 +83,10 @@
           </el-col>
         </el-row>
         <el-row :gutter="10">
-          <el-col :span="24">
+          <el-col :span="12">
+            <el-form-item label="经手人"><el-input v-model="createForm.handler" placeholder="经办人姓名（用于按人统计）" /></el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="备注"><el-input v-model="createForm.remark" /></el-form-item>
           </el-col>
         </el-row>
@@ -214,7 +217,7 @@ window.addEventListener('resize', () => { isMobile.value = window.innerWidth <= 
 const saving = ref(false)
 const suppliers = ref([])
 const createVisible = ref(false)
-const createForm = reactive({ supplierId: null, poDate: '', remark: '', items: [] })
+const createForm = reactive({ supplierId: null, poDate: '', remark: '', handler: '', items: [] })
 const pickerVisible = ref(false)
 const pickerKeyword = ref('')
 const pickerItems = ref([])
@@ -301,6 +304,7 @@ async function save() {
       supplierId: createForm.supplierId,
       poDate: createForm.poDate,
       remark: createForm.remark,
+      handler: createForm.handler || '',
       warehouseId: createForm.warehouseId,
       items: valid.map((it) => ({
         materialId: it.materialId, materialName: it.materialName, spec: it.spec,

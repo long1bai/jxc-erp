@@ -51,8 +51,18 @@
               </el-table-column>
             </el-table>
           </div>
+          <div class="stat-block">
+            <h4>按经手人</h4>
+            <el-table :data="stats.handler" size="small" stripe max-height="260">
+              <el-table-column prop="handler" label="经手人" min-width="120" sortable />
+              <el-table-column prop="order_count" label="单数" width="80" align="right" sortable />
+              <el-table-column prop="total_quantity" label="数量" width="110" align="right" sortable />
+              <el-table-column prop="total_amount" label="金额" width="130" align="right" sortable>
+                <template #default="{ row }">￥{{ fmt(row.total_amount) }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
         </el-tab-pane>
-
         <!-- ============ 采购明细 ============ -->
         <el-tab-pane label="📋 采购明细" name="detail">
           <div style="margin-bottom: 10px; display: flex; gap: 8px">
@@ -166,7 +176,7 @@ const range = ref(defaultMonthRange())
 const detailKw = ref('')
 const detailItems = ref([])
 const detailLoading = ref(false)
-const stats = reactive({ supplier: [], material: [], warehouse: [] })
+const stats = reactive({ supplier: [], material: [], warehouse: [], handler: [] })
 const monthly = reactive({ summary: [], material: [], supplier: [], trend: [] })
 const returns = reactive({ supplier: [], material: [] })
 
@@ -197,10 +207,11 @@ function params() {
 
 async function loadAll() {
   const p = params()
-  const [s1, s2, s3, m1, m2, m3, m4, r1, r2] = await Promise.all([
+  const [s1, s2, s3, s4, m1, m2, m3, m4, r1, r2] = await Promise.all([
     request.get('/purchase-stats/by-supplier', { params: p }),
     request.get('/purchase-stats/by-material', { params: p }),
     request.get('/purchase-stats/by-warehouse', { params: p }),
+    request.get('/purchase-stats/by-handler', { params: p }),
     request.get('/purchase-stats/monthly', { params: p }),
     request.get('/purchase-stats/material-monthly', { params: p }),
     request.get('/purchase-stats/supplier-monthly', { params: p }),
@@ -211,6 +222,7 @@ async function loadAll() {
   stats.supplier = s1.data.items
   stats.material = s2.data.items
   stats.warehouse = s3.data.items
+  stats.handler = s4.data.items
   monthly.summary = m1.data.items
   monthly.material = m2.data.items
   monthly.supplier = m3.data.items

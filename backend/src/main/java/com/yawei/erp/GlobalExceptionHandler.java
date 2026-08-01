@@ -47,6 +47,34 @@ public class GlobalExceptionHandler {
         return ApiResponse.fail("接口不存在：" + e.getResourcePath());
     }
 
+    /** 方法不支持（路径存在但 HTTP 方法不对）→ 405（原来落入 Exception 兜底成 500） */
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public Map<String, Object> handleMethodNotAllowed(org.springframework.web.HttpRequestMethodNotSupportedException e) {
+        return ApiResponse.fail("请求方法不支持：" + e.getMethod() + "（该接口支持 " + String.join("/", e.getSupportedMethods()) + "）");
+    }
+
+    /** Content-Type 不支持 → 415（如对 multipart 接口发 JSON） */
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    public Map<String, Object> handleMediaType(org.springframework.web.HttpMediaTypeNotSupportedException e) {
+        return ApiResponse.fail("Content-Type 不支持：" + e.getContentType() + "（该接口需要 " + e.getSupportedMediaTypes() + "）");
+    }
+
+    /** 请求体解析失败 → 400（空 body/JSON 格式错） */
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, Object> handleNotReadable(org.springframework.http.converter.HttpMessageNotReadableException e) {
+        return ApiResponse.fail("请求体格式错误：无法解析 JSON");
+    }
+
+    /** 路径参数/查询参数类型转换失败 → 400（如 {id} 传了非数字） */
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, Object> handleTypeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException e) {
+        return ApiResponse.fail("参数类型错误：" + e.getName() + " 需要 " + (e.getRequiredType() == null ? "正确类型" : e.getRequiredType().getSimpleName()));
+    }
+
     private String safeMessage(Exception e) {
         String m = e.getMessage();
         if (m == null || m.isBlank()) {

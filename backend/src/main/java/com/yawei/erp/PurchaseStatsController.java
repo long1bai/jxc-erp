@@ -40,6 +40,13 @@ public class PurchaseStatsController {
         return ApiResponse.ok(Map.of("items", trade.purchaseStatsByWarehouse(from, to)));
     }
 
+    /** 采购统计（按经手人） */
+    @GetMapping("/by-handler")
+    public Map<String, Object> byHandler(@RequestParam(required = false) String from,
+                                         @RequestParam(required = false) String to) {
+        return ApiResponse.ok(Map.of("items", trade.purchaseStatsByHandler(from, to)));
+    }
+
     /** 采购明细查询（全量 LIMIT 5000，前端分页） */
     @GetMapping("/detail")
     public Map<String, Object> detail(@RequestParam(required = false) String kw,

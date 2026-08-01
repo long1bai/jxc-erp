@@ -36,6 +36,13 @@ public class SalesStatsController {
         return ApiResponse.ok(Map.of("items", report.salesStatsByWarehouse(from, to)));
     }
 
+    /** 销售统计（按经手人） */
+    @GetMapping("/by-handler")
+    public Map<String, Object> byHandler(@RequestParam(required = false) String from,
+                                         @RequestParam(required = false) String to) {
+        return ApiResponse.ok(Map.of("items", report.salesStatsByHandler(from, to)));
+    }
+
     @GetMapping("/gross-profit")
     public Map<String, Object> grossProfit(@RequestParam(required = false) String from,
                                            @RequestParam(required = false) String to) {
