@@ -22,3 +22,7 @@ Thumbs.db
 *.log
 logs/
 backend/src/main/resources/static/
+
+# ===== Python =====
+__pycache__/
+*.pyc
