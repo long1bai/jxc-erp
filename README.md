@@ -14,6 +14,10 @@
 | [docs/06-database.md](docs/06-database.md) | 数据库文档：27 张表/核心结构/关系/备份恢复 |
 | [docs/07-features.md](docs/07-features.md) | 功能文档：各功能操作步骤（界面级指南在系统内 /help） |
 | [docs/08-dev-notes.md](docs/08-dev-notes.md) | **开发备忘**：规则速查/UI规范/雪花主键/已知坑（开发前先读） |
+| [docs/09-ops.md](docs/09-ops.md) | **运维手册**：启动/停止/备份恢复/日志/故障速查/升级流程 |
+| [docs/10-ai.md](docs/10-ai.md) | **AI 文档**：报价助手/拍照识别/批量BOM 配置与排障 |
+| [docs/test-reports/README.md](docs/test-reports/README.md) | **测试资产**：e2e 168项 + 压测 11项，脚本用法/报告索引/清理机制 |
+| [AGENTS.md](AGENTS.md) | **AI 协作指南**：给 AI 助手的工作总入口（业务口径/流程/纪律/偏好） |
 | [docs/work-punch-design.md](docs/work-punch-design.md) | 报工打卡模块详细设计（状态机/API/扣料/图片） |
 
 - 前端：Vue 3 + Vite + Element Plus + Pinia（`web/`）
