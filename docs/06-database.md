@@ -23,9 +23,10 @@
 | customer_order_items | 5235 | 订单明细 |
 | delivery_notes | 3385 | 送货单主表 |
 | delivery_items | 5213 | 送货明细 |
-| purchase_orders | 392 | 采购单主表 |
+| purchase_orders | 392 | 采购单主表（含 po_order_id 关联列，回填采购订单分批入库来源） |
 | purchase_items | 892 | 采购明细 |
 | purchase_returns / purchase_return_items | 0 / 0 | 采购退货 |
+| po_orders / po_order_items | 0 / 0 | 独立采购订单（订单→分批入库→执行跟踪，2026-08-01 新增） |
 | bom_items | 21 | BOM 配方（成品→组件） |
 
 ### 报工

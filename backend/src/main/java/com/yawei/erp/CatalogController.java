@@ -52,6 +52,7 @@ public class CatalogController {
                             new MenuNode("/deliveries", "送货单", "Van", List.of(Constants.ROLE_ADMIN), null),
                             new MenuNode("/sales-returns", "销售退货", "RefreshLeft", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
                             new MenuNode("/purchases", "采购入库", "Box", List.of(Constants.ROLE_ADMIN), null),
+                            new MenuNode("/po-orders", "采购订单", "Tickets", List.of(Constants.ROLE_ADMIN), null),
                             new MenuNode("/purchase-returns", "采购退货", "RefreshLeft", List.of(Constants.ROLE_ADMIN), null))),
 
             // 库存报表

@@ -292,6 +292,61 @@ def mod_purchase(base):
     return {"po": po_id, "pr": pr_id}
 
 
+def mod_po_order(base):
+    """独立采购订单：订单 → 分批入库 → 执行跟踪（2026-08-01 新增模块）
+    用独立物料「原料PO-序号」测试，避免污染其他模块的共享库存断言。"""
+    print("\n== 4b. 采购订单(独立) ==")
+    # 独立物料：只在 po-orders 测试中使用，库存基线=0，且名字带【测试】可被清理
+    pom_name = PREFIX + "原料PO-" + SUF
+    st, r = api("POST", "/api/materials", {"code": "TEST-PORM-" + SUF, "name": pom_name, "spec": "2.0mm",
+                                           "unit": "米", "category": "测试原料", "purchasePrice": 3.5,
+                                           "salePrice": 7.0, "minStock": 1, "remark": TAG})
+    rm = (data_of((st, r)) or {}).get("id")
+    rec("创建采购订单专用物料", ok_of((st, r)) and rm, "id=%s" % rm if rm else str(r)[:120])
+    item = lambda m, name, q, p: {"materialId": m, "materialName": name, "spec": "2.0mm", "unit": "米", "quantity": q, "unitPrice": p}
+    # 创建订单：订 100
+    st, r = api("POST", "/api/po-orders", {"supplierId": base["sup"], "orderDate": datetime.now().strftime("%Y-%m-%d"),
+                                           "handler": "测试员", "remark": PREFIX + "采购订单" + TAG,
+                                           "items": [item(rm, pom_name, 100, 3.5)]})
+    po_id = (data_of((st, r)) or {}).get("id")
+    po_no = (data_of((st, r)) or {}).get("poOrderNo")
+    rec("创建采购订单(独立物料×100)", ok_of((st, r)) and po_id, "id=%s %s" % (po_id, po_no) if po_id else str(r)[:200])
+    st, r = api("GET", "/api/po-orders/%s" % po_id)
+    d = data_of((st, r)) or {}
+    rec("查询采购订单详情", ok_of((st, r)) and len(d.get("items", [])) == 1 and d.get("main", {}).get("status") == "pending", str(d)[:140])
+    st, r = api("GET", "/api/po-orders", params={"keyword": base["sname"]})
+    rec("查询采购订单列表(按供应商)", ok_of((st, r)) and count_of((st, r)) >= 1, "total=%s" % count_of((st, r)))
+    # 分批入库 #1：收 40 → partial
+    st, r = api("POST", "/api/po-orders/%s/receive" % po_id, [{"materialId": rm, "quantity": 40}])
+    rec("分批入库#1(收40)", ok_of((st, r)) and data_of((st, r)).get("orderStatus") == "partial", str(r)[:160])
+    s1 = get_stock(rm)
+    rec("入库#1后库存(独立物料=40)", s1 is not None and float(s1) == 40.0, "库存=%s" % s1)
+    # 分批入库 #2：收 60 → done
+    st, r = api("POST", "/api/po-orders/%s/receive" % po_id, [{"materialId": rm, "quantity": 60}])
+    rec("分批入库#2(收60)", ok_of((st, r)) and data_of((st, r)).get("orderStatus") == "done", str(r)[:160])
+    s2 = get_stock(rm)
+    rec("入库#2后库存(独立物料=100)", s2 is not None and float(s2) == 100.0, "库存=%s" % s2)
+    st, r = api("GET", "/api/po-orders/%s" % po_id)
+    rec("订单状态=done", ok_of((st, r)) and data_of((st, r)).get("main", {}).get("status") == "done", str(data_of((st, r)))[:120])
+    # 超收被拒
+    st, r = api("POST", "/api/po-orders/%s/receive" % po_id, [{"materialId": rm, "quantity": 1}])
+    rec("超收被拒", not ok_of((st, r)), str(r)[:120])
+    # 带入库关联删除被拒
+    st, r = api("DELETE", "/api/po-orders/%s" % po_id)
+    rec("已入库订单删除被拒", not ok_of((st, r)), str(r)[:120])
+    # 入库单关联检查：receive 生成的采购单 po_order_id 指向本订单（查库验证）
+    linked = 0
+    try:
+        p = subprocess.run([MYSQL, "-uroot", "yawei_erp", "-N", "-e",
+                            "SELECT COUNT(*) FROM purchase_orders WHERE po_order_id=%s AND deleted=0" % po_id],
+                           capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
+        linked = int((p.stdout or "0").strip() or 0)
+    except Exception:
+        linked = 0
+    rec("订单入库生成采购单(po_order_id 关联)", linked >= 2, "关联入库单=%s" % linked)
+    return {"po": po_id}
+
+
 def mod_sales(base):
     print("\n== 5. 销售 ==")
     rm = base["mats"].get(PREFIX + "原料1-" + SUF)
@@ -609,6 +664,12 @@ DELETE FROM stock_transfer_items WHERE transfer_id IN (SELECT id FROM stock_tran
 DELETE FROM production_in_items WHERE pi_id IN (SELECT id FROM production_ins WHERE remark LIKE '%【测试】%');
 DELETE FROM production_return_items WHERE prt_id IN (SELECT id FROM production_returns WHERE remark LIKE '%【测试】%');
 DELETE FROM purchase_items WHERE po_id IN (SELECT id FROM purchase_orders WHERE remark LIKE '%【测试】%');
+-- 采购订单（独立）：先删其 receive 生成的入库单/流水（po_order_id 关联），再删订单本身
+DELETE FROM purchase_items WHERE po_id IN (SELECT id FROM purchase_orders WHERE po_order_id IN (SELECT id FROM po_orders WHERE remark LIKE '%【测试】%'));
+DELETE FROM stock_movements WHERE ref_type='purchase' AND ref_id IN (SELECT id FROM purchase_orders WHERE po_order_id IN (SELECT id FROM po_orders WHERE remark LIKE '%【测试】%'));
+DELETE FROM purchase_orders WHERE po_order_id IN (SELECT id FROM po_orders WHERE remark LIKE '%【测试】%');
+DELETE FROM po_order_items WHERE po_order_id IN (SELECT id FROM po_orders WHERE remark LIKE '%【测试】%');
+DELETE FROM po_orders WHERE remark LIKE '%【测试】%';
 DELETE FROM purchase_return_items WHERE pr_id IN (SELECT id FROM purchase_returns WHERE remark LIKE '%【测试】%');
 DELETE FROM bom_items WHERE product_id IN (SELECT id FROM materials WHERE name LIKE '%【测试】%');
 DELETE FROM process_materials WHERE process_id IN (SELECT id FROM processes WHERE name LIKE '%【测试】%');
@@ -641,6 +702,7 @@ DELETE FROM operation_logs WHERE detail LIKE '%【测试】%' OR detail LIKE '%�
 -- 序列重同步：清掉测试单后，把各单据序列表重置为「现存最大单号」，防止软删行占位导致撞号
 UPDATE sequences s SET seq = (SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(st_no,'-',-1) AS UNSIGNED)),0) FROM stock_takes WHERE st_no LIKE 'PD-{ds}-%') WHERE s.prefix='PD:{ds}';
 UPDATE sequences s SET seq = (SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(po_no,'-',-1) AS UNSIGNED)),0) FROM purchase_orders WHERE po_no LIKE 'CGDD-{ds}-%') WHERE s.prefix='CGDD:{ds}';
+UPDATE sequences s SET seq = (SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(po_order_no,'-',-1) AS UNSIGNED)),0) FROM po_orders WHERE po_order_no LIKE 'PO-{ds}-%') WHERE s.prefix='PO:{ds}';
 UPDATE sequences s SET seq = (SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(co_no,'-',-1) AS UNSIGNED)),0) FROM customer_orders WHERE co_no LIKE 'XSDD-{ds}-%') WHERE s.prefix='XSDD:{ds}';
 UPDATE sequences s SET seq = (SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(dn_no,'-',-1) AS UNSIGNED)),0) FROM delivery_notes WHERE dn_no LIKE 'SH-XSDD-{ds}-%') WHERE s.prefix='SH-XSDD:{ds}';
 UPDATE sequences s SET seq = (SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(sr_no,'-',-1) AS UNSIGNED)),0) FROM sales_returns WHERE sr_no LIKE 'XSTH-{ds}-%') WHERE s.prefix='XSTH:{ds}';
@@ -671,6 +733,7 @@ def main():
     work_base = mod_work_base()
     mod_bom(base["mats"])
     mod_purchase(base)
+    mod_po_order(base)
     sales = mod_sales(base)
     mod_production(base)
     mod_stock(base)

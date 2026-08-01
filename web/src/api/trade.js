@@ -23,6 +23,12 @@ export const tradeApi = {
   purchaseDetail: (id) => request.get(`/purchases/${id}`),
   createPurchase: (data) => request.post('/purchases', data),
   deletePurchase: (id) => request.delete(`/purchases/${id}`),
+  // 独立采购订单（订单→分批入库→执行跟踪）
+  poOrders: (params) => request.get('/po-orders', { params }),
+  poOrderDetail: (id) => request.get(`/po-orders/${id}`),
+  createPoOrder: (data) => request.post('/po-orders', data),
+  receivePoOrder: (id, items) => request.post(`/po-orders/${id}/receive`, items),
+  deletePoOrder: (id) => request.delete(`/po-orders/${id}`),
 
   // 销售退货
   salesReturns: (params) => request.get('/sales-returns', { params }),

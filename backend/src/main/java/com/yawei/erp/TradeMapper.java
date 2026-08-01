@@ -354,4 +354,56 @@ public interface TradeMapper {
             "<if test='to != null and to != \"\"'> AND pr.return_date &lt;= #{to}</if>" +
             "</where> GROUP BY pri.material_id, m.name, m.spec ORDER BY amount DESC</script>")
     List<Map<String, Object>> returnStatsByMaterial(@Param("from") String from, @Param("to") String to);
+
+    // ============ 采购订单（po_orders，2026-08-01 独立订单模块） ============
+
+    @Insert("INSERT INTO po_orders (po_order_no, supplier_id, supplier_name, order_date, handler, remark, status, total_quantity, total_amount) " +
+            "VALUES (#{no}, #{supplierId}, #{supplierName}, #{date}, #{handler}, #{remark}, 'pending', #{totalQty}, #{totalAmt})")
+    int poOrderInsert(@Param("no") String no, @Param("supplierId") Long supplierId,
+                      @Param("supplierName") String supplierName, @Param("date") String date,
+                      @Param("handler") String handler, @Param("remark") String remark,
+                      @Param("totalQty") java.math.BigDecimal totalQty, @Param("totalAmt") java.math.BigDecimal totalAmt);
+
+    @Insert("INSERT INTO po_order_items (po_order_id, material_id, material_name, spec, unit, quantity, unit_price, amount, sort_order) " +
+            "VALUES (#{poOrderId}, #{materialId}, #{materialName}, #{spec}, #{unit}, #{quantity}, #{unitPrice}, #{amount}, #{sort})")
+    int poOrderItemInsert(@Param("poOrderId") Long poOrderId, @Param("materialId") Long materialId,
+                          @Param("materialName") String materialName, @Param("spec") String spec, @Param("unit") String unit,
+                          @Param("quantity") java.math.BigDecimal quantity, @Param("unitPrice") java.math.BigDecimal unitPrice,
+                          @Param("amount") java.math.BigDecimal amount, @Param("sort") int sort);
+
+    @Select("SELECT id FROM po_orders WHERE po_order_no = #{no} AND deleted = 0 ORDER BY id DESC LIMIT 1")
+    Long lastPoOrderId(@Param("no") String no);
+
+    @Select("<script>SELECT po.id, po.po_order_no, po.supplier_id, COALESCE(po.supplier_name,'') AS supplier_name, po.order_date, po.handler, po.remark, po.status, po.total_quantity, po.total_amount, po.created_at " +
+            "FROM po_orders po " +
+            "<where>po.deleted = 0 " +
+            "<if test='kw != null and kw != \"\"'> AND (po.po_order_no LIKE CONCAT('%',#{kw},'%') OR po.supplier_name LIKE CONCAT('%',#{kw},'%'))</if>" +
+            "<if test='status != null and status != \"\"'> AND po.status = #{status}</if>" +
+            "</where> ORDER BY po.created_at DESC</script>")
+    List<Map<String, Object>> poOrderList(@Param("kw") String kw, @Param("status") String status,
+                                          IPage<Map<String, Object>> page);
+
+    @Select("SELECT * FROM po_orders WHERE id = #{id} AND deleted = 0")
+    List<Map<String, Object>> poOrderDetail(@Param("id") Long id);
+
+    @Select("SELECT * FROM po_order_items WHERE po_order_id = #{id} AND deleted = 0 ORDER BY sort_order, id")
+    List<Map<String, Object>> poOrderItems(@Param("id") Long id);
+
+    @Update("UPDATE po_order_items SET received_quantity = #{received} WHERE id = #{id} AND deleted = 0")
+    int poOrderItemReceived(@Param("id") Object id, @Param("received") java.math.BigDecimal received);
+
+    @Update("UPDATE po_orders SET status = #{status} WHERE id = #{id} AND deleted = 0")
+    int poOrderStatus(@Param("id") Long id, @Param("status") String status);
+
+    @Update("UPDATE purchase_orders SET po_order_id = #{poOrderId} WHERE id = #{poId} AND deleted = 0")
+    int linkPoOrder(@Param("poId") Long poId, @Param("poOrderId") Long poOrderId);
+
+    @Select("SELECT COUNT(*) FROM purchase_orders WHERE po_order_id = #{id} AND deleted = 0")
+    Long poOrderReceivedCount(@Param("id") Long id);
+
+    @Update("UPDATE po_order_items SET deleted = 1 WHERE po_order_id = #{id}")
+    int poOrderItemsDelete(@Param("id") Long id);
+
+    @Update("UPDATE po_orders SET deleted = 1 WHERE id = #{id}")
+    int poOrderDelete(@Param("id") Long id);
 }

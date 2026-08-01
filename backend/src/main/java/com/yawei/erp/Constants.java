@@ -24,6 +24,8 @@ public final class Constants {
     public static final String SEQ_STOCK_TAKE = "PD";
     /** 库存调拨 */
     public static final String SEQ_STOCK_TRANSFER = "ST";
+    /** 采购订单 */
+    public static final String SEQ_PO_ORDER = "PO";
 
     // ============ 角色（users.role） ============
     /** 管理员（全部权限） */

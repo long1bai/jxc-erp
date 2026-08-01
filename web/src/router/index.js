@@ -80,6 +80,7 @@ const router = createRouter({
         { path: 'base/warehouses', component: Warehouse, meta: { title: '仓库', roles: ['admin', 'dev'] } },
         { path: 'stock/inventory', component: Stock, meta: { title: '库存查询' } },
         { path: 'purchases', component: Purchases, meta: { title: '采购入库', roles: ['admin'] } },
+        { path: 'po-orders', component: () => import('../views/PoOrders.vue'), meta: { title: '采购订单', roles: ['admin'] } },
         { path: 'purchase-returns', component: PurchaseReturns, meta: { title: '采购退货', roles: ['admin'] } },
         { path: 'orders', component: Orders, meta: { title: '客户订单', roles: ['admin'] } },
         { path: 'deliveries', component: Deliveries, meta: { title: '送货单', roles: ['admin'] } },
