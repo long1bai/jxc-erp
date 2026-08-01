@@ -1,0 +1,23 @@
+# ===== 构建产物 =====
+backend/target/
+backend/build.log
+web/node_modules/
+web/dist/
+web/.vite/
+
+# ===== 数据/备份 =====
+backup/
+*.sql
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+
+# ===== 系统 =====
+.DS_Store
+Thumbs.db
+
+# ===== 日志 =====
+*.log
+logs/

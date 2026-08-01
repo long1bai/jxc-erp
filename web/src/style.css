@@ -1,0 +1,60 @@
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #f0f2f5;
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* ===== 手机端弹窗适配（全局，所有 el-dialog 生效）=====
+   核心：弹窗全屏化 + 表单区内部滚动 + 保存按钮固定底部（不用滑到底才能点保存） */
+@media (max-width: 767px) {
+  .el-dialog {
+    width: 100% !important;
+    margin: 0 !important;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0;
+  }
+  .el-dialog__header {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    border-bottom: 1px solid #ebeef5;
+  }
+  .el-dialog__body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 16px;
+  }
+  .el-dialog__footer {
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    padding: 10px 16px;
+    border-top: 1px solid #ebeef5;
+    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.06);
+  }
+  /* 表单更紧凑：字段间距/字号微调 */
+  .el-form-item {
+    margin-bottom: 14px;
+  }
+  .el-dialog .el-form--label-top .el-form-item__label {
+    margin-bottom: 2px;
+  }
+  /* 详情弹窗明细：手机端字段行（替代表格，避免横向滚动丢列） */
+  .m-detail-items { display: flex; flex-direction: column; gap: 8px; }
+  .m-detail-item {
+    border: 1px solid #ebeef5; border-radius: 8px; padding: 8px 10px;
+    background: #fafbfc;
+  }
+  .m-di-head { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 2px; }
+  .m-di-spec { font-size: 12px; color: #666; margin-bottom: 6px; }
+  .m-di-line { display: flex; justify-content: space-between; font-size: 13px; line-height: 1.8; }
+  .m-di-line span { color: #909399; }
+  .m-di-line b { color: #303133; font-weight: 600; }
+}
+
