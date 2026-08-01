@@ -365,11 +365,31 @@ def main():
     cleanup(base)
 
     ok_n = sum(1 for _, ok, _ in RESULTS if ok)
+    fail_n = len(RESULTS) - ok_n
     print("\n" + "=" * 60)
-    print("压测完成：%d 通过 / %d 失败 / 共 %d 项" % (ok_n, len(RESULTS) - ok_n, len(RESULTS)))
+    print("压测完成：%d 通过 / %d 失败 / 共 %d 项" % (ok_n, fail_n, len(RESULTS)))
     for name, ok, detail in RESULTS:
         if not ok:
             print("  FAIL %s | %s" % (name, detail[:180]))
+    # 报告落盘（对齐 e2e_test.py）
+    import os
+    out_dir = r"I:\yawei-erp-java\docs\test-reports"
+    os.makedirs(out_dir, exist_ok=True)
+    fname = os.path.join(out_dir, "%s-stress-test.md" % datetime.now().strftime("%Y-%m-%d"))
+    with open(fname, "w", encoding="utf-8") as f:
+        f.write("# jxcERP v2 压力测试报告\n\n")
+        f.write("- 时间：%s\n- 环境：http://127.0.0.1:8080\n- 测试数据：运行后已全量清理（SQL）+ 单据序列重同步\n\n" % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        f.write("## 结果汇总\n\n| 测试项 | 结果 | 说明 |\n|---|---|---|\n")
+        for name, ok, detail in RESULTS:
+            f.write("| %s | %s | %s |\n" % (name, "✅" if ok else "❌", str(detail).replace("|", "\\|")[:250]))
+        f.write("\n## 场景说明\n\n")
+        f.write("- 1 并发单号生成：30 线程 barrier 同时创建订单，验证单号无重复、无死锁\n")
+        f.write("- 2 并发库存扣减：20 并发送货各扣 5（预置库存 200），验证流水聚合模型并发精确\n")
+        f.write("- 3 并发报工打卡：10 并发同员工 start，验证原子防重（应仅 1 条进行中）\n")
+        f.write("- 4 单据序列并发：10 并发盘点单号生成，验证 UPDATE+INSERT+重试方案（序列行已存在场景）\n")
+        f.write("- 5 接口负载：20 线程 × 10 次 × 6 接口，统计 p50/p95/max 延迟与错误率\n\n")
+        f.write("## 已知边界\n\n- 人为删除 sequences 行 + 10 并发首建是极端场景（生产不会发生）：历史软删单据会占住单号唯一键，撞键属数据问题而非并发缺陷，见 docs/08-dev-notes.md 6.19 序列铁律。\n")
+    print("\n报告已写入: %s" % fname)
 
 
 if __name__ == "__main__":
