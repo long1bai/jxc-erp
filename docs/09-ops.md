@@ -106,9 +106,39 @@ cd /i/yawei-erp-java/web && npm run dev   # 5173
 
 完整演练流程与事故复盘：`08-dev-notes.md` 6.13 + 技能 references/restore-test-and-deployment.md。
 
-### 3.3 旧版 H 盘智能备份（v1 时代遗留）
+### 3.3 容灾体系（2026-08-01 新增，断电/磁盘损坏防护）
 
-Python v1 时代 `smart_backup.py` 每 30 分钟检查 + 17:00 强制备份到 `H:\jxc系统备份\YYYYMMDD\`。v2 上线后建议迁移到 mysqldump 计划任务（见技能 references/legacy-python-v1.md 备份章节）。
+**架构**：每天 17:30 自动备份到 H 盘（异地，与系统盘 I 分离）+ 断电来电自动恢复。
+
+```
+I 盘（系统）                    H 盘（容灾，异地）
+┌─────────────────┐            ┌──────────────────────┐
+│ MySQL 3306       │            │ H:\jxc系统备份\ERP\    │
+│ 后端 jar 8080    │─ 17:30 ──► │  YYYYMMDD\           │
+│ I:\yawei-uploads │  自动备份   │   yawei_erp_*.sql    │
+│ 配置/密钥         │            │   uploads\（图片增量） │
+└─────────────────┘            │   config\（密钥等）   │
+                               └──────────────────────┘
+```
+
+| 组件 | 脚本 | 作用 |
+|---|---|---|
+| 备份执行 | `scripts/dr_backup.py` | mysqldump 全库 + 图片增量拷贝 + 配置文件/密钥 → H 盘，保留 30 天自动清理 |
+| 备份调度 | `scripts/dr_daemon.py` | 常驻守护，每天 17:30 触发备份；**开机后 10 分钟内补跑**（断电错过时间也能补）；PID 锁防重复 |
+| 开机自启 | 启动文件夹 `启动ERP.vbs` | 登录后自动拉起 MySQL + 后端 jar + 备份守护（幂等：已在跑不重复） |
+| 恢复演练 | `scripts/dr_restore_drill.py` | 取 H 盘最新备份 → 临时库恢复 → 表数/关键表行数冒烟 → 清理，验证"备份真能恢复" |
+
+**手动触发**：`python I:\yawei-erp-java\scripts\dr_backup.py`
+**演练**：`python I:\yawei-erp-java\scripts\dr_restore_drill.py`（输出 DRILL RESULT: PASS/FAIL）
+**守护日志**：`I:\yawei-erp-java\scripts\dr_daemon.log`
+
+**实测记录（2026-08-01）**：断电模拟（杀全部服务）→ vbs 一键恢复 MySQL+后端+daemon（1 秒就绪）；H 盘备份 194MB（含 1855 张图片）；演练 46 表恢复、9 张关键表行数与生产一致。
+
+**坑**：vbs 里必须用绝对路径（explorer 环境 PATH 与 bash 不同，裸 `python`/`java` 会静默失败）；vbs 注释只能用 ASCII（UTF-8 中文会解析报错）；cscript 路径别用 `/i/` 前缀（被当选项）。
+
+### 3.4 旧版 H 盘智能备份（v1 时代遗留）
+
+Python v1 时代 `smart_backup.py` 每 30 分钟检查 + 17:00 强制备份到 `H:\jxc系统备份\YYYYMMDD\`。v2 已由 3.3 容灾体系替代（dr_backup.py 每天 17:30 + 开机补跑），本脚本仅供 v1 历史数据参考。
 
 ## 4. 日志体系
 
