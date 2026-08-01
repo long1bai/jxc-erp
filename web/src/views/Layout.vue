@@ -1,29 +1,14 @@
 <template>
   <el-container class="layout">
-    <!-- 模块栏 + 主菜单 -->
-    <el-aside width="256px" class="aside" :class="{ 'mobile-open': mobileMenuOpen }">
-      <div class="aside-flex">
-        <!-- 左侧窄模块栏（象过河风格：点模块，菜单跟着过滤） -->
-        <div class="mod-bar">
-          <div class="mod-brand" title="首页" @click="goHome">
-            <el-icon size="20"><Odometer /></el-icon>
-          </div>
-          <div v-for="g in modGroups" :key="g.path" class="mod-item"
-               :class="{ active: selectedModule === g.path }"
-               :title="g.title" @click="selectModule(g.path)">
-            <el-icon size="19"><component :is="g.icon" /></el-icon>
-            <span class="mod-label">{{ g.title }}</span>
-          </div>
-        </div>
-        <!-- 主菜单（按选中模块过滤） -->
-        <div class="menu-area">
-          <div class="brand">📦 jxc进销存 <span class="ver">v2.0</span></div>
-          <div v-if="selectedModule" class="mod-title">
-            <el-icon v-if="currentMod?.icon" size="14"><component :is="currentMod.icon" /></el-icon>
-            {{ currentMod?.title }}
-          </div>
-          <el-menu ref="menuRef" :default-active="activeMenu" router class="menu" @scroll="saveMenuScroll">
-            <template v-for="item in filteredMenus" :key="item.path">
+    <!-- 主菜单 -->
+    <el-aside width="200px" class="aside" :class="{ 'mobile-open': mobileMenuOpen }">
+      <div class="brand">📦 jxc进销存 <span class="ver">v2.0</span></div>
+      <div v-if="currentMod" class="mod-title">
+        <el-icon v-if="currentMod?.icon" size="14"><component :is="currentMod.icon" /></el-icon>
+        {{ currentMod?.title }}
+      </div>
+      <el-menu :default-active="activeMenu" router class="menu">
+        <template v-for="item in menus" :key="item.path">
               <el-sub-menu v-if="item.children && item.children.length" :index="item.path">
                 <template #title>
                   <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
@@ -40,8 +25,6 @@
               </el-menu-item>
             </template>
           </el-menu>
-        </div>
-      </div>
     </el-aside>
 
     <!-- 手机端侧栏遮罩 -->
@@ -115,12 +98,12 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '../store/user'
 import request from '../utils/request'
-import { Menu, Camera, Box, QuestionFilled, Odometer } from '@element-plus/icons-vue'
+import { Menu, Camera, Box, QuestionFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -172,41 +155,13 @@ function go(path) {
   if (route.path === path) return
   router.push(path)
 }
-// 首页图标：已在仪表盘则刷新（重新加载数据），否则跳转
-function goHome() {
-  if (route.path === '/dashboard') {
-    window.location.reload()
-  } else {
-    router.push('/dashboard')
-  }
-}
 
-// ===== 模块栏（象过河：左侧窄栏点模块，主菜单过滤）=====
+// ===== 模块关联（右侧查询面板 + 菜单标题：自动跟随当前页面所在模块）=====
 const modGroups = computed(() => menus.value.filter((m) => (m.children || []).length))
 const singles = computed(() => menus.value.filter((m) => !(m.children || []).length))
 const selectedModule = ref('')
 const currentMod = computed(() => modGroups.value.find((g) => g.path === selectedModule.value))
-function selectModule(path) {
-  selectedModule.value = selectedModule.value === path ? '' : path // 再点取消过滤
-}
-const filteredMenus = computed(() => {
-  if (!selectedModule.value) return menus.value
-  const sel = modGroups.value.find((g) => g.path === selectedModule.value)
-  return [sel, ...singles.value].filter(Boolean)
-})
-// 菜单滚动位置保持：菜单项点击 → 模块过滤重渲染会重置滚动，保存并恢复
-const menuRef = ref(null)
-let savedMenuScroll = 0
-function saveMenuScroll() {
-  savedMenuScroll = menuRef.value?.$el?.scrollTop ?? 0
-}
-watch(filteredMenus, () => {
-  nextTick(() => {
-    const el = menuRef.value?.$el
-    if (el) el.scrollTop = savedMenuScroll
-  })
-})
-// 路由变化 → 自动关联所属模块（菜单跟当前页走；无分组页如仪表盘/拍照显示全量）
+// 路由变化 → 自动关联所属模块（用于右面板和菜单标题；无分组页如仪表盘/拍照显示全量）
 function syncModule() {
   const clean = route.path.split('?')[0]
   for (const g of modGroups.value) {
@@ -260,63 +215,6 @@ async function logout() {
 .aside {
   background: #001529;
   transition: transform .25s ease;
-}
-.aside-flex {
-  display: flex;
-  height: 100%;
-}
-/* 左侧窄模块栏 */
-.mod-bar {
-  width: 56px;
-  background: #000c17;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px 0;
-  gap: 2px;
-  flex-shrink: 0;
-}
-.mod-brand {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, .8);
-  cursor: pointer;
-  border-radius: 8px;
-  margin-bottom: 6px;
-}
-.mod-brand:hover { background: rgba(255, 255, 255, .1); }
-.mod-item {
-  width: 52px;
-  padding: 7px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  color: rgba(255, 255, 255, .55);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all .15s;
-}
-.mod-item .mod-label {
-  font-size: 10px;
-  transform: scale(.9);
-  white-space: nowrap;
-}
-.mod-item:hover { color: #fff; background: rgba(255, 255, 255, .08); }
-.mod-item.active {
-  color: #fff;
-  background: rgba(24, 144, 255, .35);
-  box-shadow: inset 0 0 0 1px rgba(24, 144, 255, .4);
-}
-/* 主菜单区 */
-.menu-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
 }
 .brand {
   color: #fff;

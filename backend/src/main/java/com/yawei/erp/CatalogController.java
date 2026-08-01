@@ -60,6 +60,7 @@ public class CatalogController {
                     List.of(
                             new MenuNode("/stock/inventory", "库存查询", "Box", List.of(), null),
                             new MenuNode("/stock-takes", "库存盘点", "Clipboard", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/stock/transfers", "库存调拨", "Switch", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
                             new MenuNode("/purchase-reports", "采购报表", "DataLine", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS), null),
                             new MenuNode("/sales-reports", "销售报表", "DataLine", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS), null),
                             new MenuNode("/reports", "报表中心", "DataAnalysis", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS), null),
