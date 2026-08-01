@@ -27,6 +27,7 @@ import PurchaseReports from '../views/PurchaseReports.vue'
 import SalesReturns from '../views/SalesReturns.vue'
 import SalesReports from '../views/SalesReports.vue'
 import StockTakes from '../views/StockTakes.vue'
+import Approvals from '../views/Approvals.vue'
 import CashAccounts from '../views/CashAccounts.vue'
 import Funds from '../views/Funds.vue'
 import AccountReports from '../views/AccountReports.vue'
@@ -61,6 +62,7 @@ const router = createRouter({
         { path: 'sales-returns', component: SalesReturns, meta: { title: '销售退货', roles: ['admin', 'dev'] } },
         { path: 'sales-reports', component: SalesReports, meta: { title: '销售报表', roles: ['admin', 'dev', 'boss'] } },
         { path: 'stock-takes', component: StockTakes, meta: { title: '库存盘点', roles: ['admin', 'dev'] } },
+        { path: 'approvals', component: Approvals, meta: { title: '单据审批', roles: ['admin', 'dev'] } },
         { path: 'stock/transfers', component: () => import('../views/StockTransfers.vue'), meta: { title: '库存调拨', roles: ['admin', 'dev'] } },
         { path: 'finance/accounts', component: CashAccounts, meta: { title: '资金账户', roles: ['admin'] } },
         { path: 'finance/funds', component: Funds, meta: { title: '收支转账', roles: ['admin'] } },

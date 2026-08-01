@@ -19,6 +19,9 @@ public class DeliveryController {
     private final SequenceUtil seq;
     private final OrderController orders;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private ApprovalMapper approvalMapper;
+
     public DeliveryController(TradeMapper mapper, SysMapper sys, SequenceUtil seq, OrderController orders) {
         this.mapper = mapper;
         this.sys = sys;
@@ -101,7 +104,6 @@ public class DeliveryController {
                 req.deliveryDate() == null || req.deliveryDate().isBlank() ? today() : req.deliveryDate(),
                 req.handler(), totalQty, totalAmt, req.remark());
         Long dnId = mapper.lastDeliveryId(dnNo);
-
         int sort = 0;
         for (var it : req.items()) {
             if (it.materialId() == null || it.quantity() == null || it.quantity().signum() <= 0) {
@@ -110,10 +112,20 @@ public class DeliveryController {
             BigDecimal amt = orders.amount(it.quantity(), it.unitPrice());
             mapper.deliveryItemInsert(dnId, it.materialId(), it.materialName(), it.spec(), it.unit(),
                     it.quantity(), it.unitPrice(), amt, sort++);
+        }
+        // 审批流：启用审批时创建为 pending 且不执行库存动作（明细已存），审批通过后由 ApprovalController 扣库存
+        if (approvalMapper.approvalEnabled("delivery") == 1) {
+            approvalMapper.updateDeliveryApprove(dnId, "pending", "");
+            return ApiResponse.ok(Map.of("id", dnId, "dnNo", dnNo, "pendingApproval", true));
+        }
+        for (var it : req.items()) {
+            if (it.materialId() == null || it.quantity() == null || it.quantity().signum() <= 0) {
+                continue;
+            }
             BigDecimal before = currentStock(it.materialId());
             BigDecimal after = before.subtract(it.quantity());
             mapper.movementInsert(it.materialId(), "out", "delivery", dnId,
-                    it.quantity(), before, after, it.unitPrice(), amt, today(), "销售出货#" + dnNo);
+                    it.quantity(), before, after, it.unitPrice(), orders.amount(it.quantity(), it.unitPrice()), today(), "销售出货#" + dnNo);
         }
         if (orderId != null) {
             recalcOrder(orderId);

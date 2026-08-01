@@ -18,6 +18,9 @@ public class PurchaseController {
     private final SysMapper sys;
     private final SequenceUtil seq;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private ApprovalMapper approvalMapper;
+
     public PurchaseController(TradeMapper mapper, SysMapper sys, SequenceUtil seq) {
         this.mapper = mapper;
         this.sys = sys;
@@ -74,10 +77,20 @@ public class PurchaseController {
             BigDecimal amt = amount(it.quantity(), it.unitPrice());
             mapper.purchaseItemInsert(poId, it.materialId(), it.materialName(), it.spec(), it.unit(),
                     it.quantity(), it.unitPrice(), amt, sort++);
+        }
+        // 审批流：启用审批时创建为 pending 且不执行库存动作（明细已存），审批通过后由 ApprovalController 加库存
+        if (approvalMapper.approvalEnabled("purchase") == 1) {
+            approvalMapper.updatePurchaseApprove(poId, "pending", "");
+            return ApiResponse.ok(Map.of("id", poId, "poNo", poNo, "pendingApproval", true));
+        }
+        for (var it : req.items()) {
+            if (it.materialId() == null || it.quantity() == null || it.quantity().signum() <= 0) {
+                continue;
+            }
             BigDecimal before = currentStock(it.materialId());
             BigDecimal after = before.add(it.quantity());
             mapper.movementInsertWh(it.materialId(), req.warehouseId(), "in", "purchase", poId,
-                    it.quantity(), before, after, it.unitPrice(), amt, today(), "采购入库#" + poNo);
+                    it.quantity(), before, after, it.unitPrice(), amount(it.quantity(), it.unitPrice()), today(), "采购入库#" + poNo);
         }
         return ApiResponse.ok(Map.of("id", poId, "poNo", poNo));
     }
