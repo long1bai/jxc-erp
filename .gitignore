@@ -26,3 +26,5 @@ backend/src/main/resources/static/
 # ===== Python =====
 __pycache__/
 *.pyc
+scripts/dr_daemon.log
+scripts/.dr_daemon.lock
