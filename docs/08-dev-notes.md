@@ -372,3 +372,19 @@
 - **重启后端 → 同一 token 仍 200（核心：断电/重启不用重登）**
 - 篡改 token → 401；无 token → 401；/auth/me 正常
 - e2e 180/180 全绿 + 压测 11/11 全过
+
+## 6.23 布局简化 + 前端清理修复（2026-08-01）
+
+### 布局简化（用户反馈「相关查询统计侧边栏没用」→ 三栏改两栏）
+- **删除顶部快捷功能条**：6 项（订单/采购/库存/收付款/报工）与左侧菜单完全重复，纯冗余导航
+- **右侧面板改「实时统计」卡片**：按当前模块显示指标（进销存→待出货/部分出货/未发货；报表→库存预警/本月销售/采购；财务→待收/待付/本月收款；生产/报工→本月送货/新订单），复用 /api/dashboard/data（60s 缓存），点击数字跳转。不再重复显示菜单
+- 教训：三处导航（顶部条/左菜单/右面板）指向同一批页面=冗余，用户明确「想简化」；右侧面板做「导航的再投影」没价值，做「实时数据」才有价值
+
+### 前端清理修复（两个隐蔽 bug 类）
+1. **残留裸括号死代码**：Receivables.vue `('summary')`、Payables.vue `('summary')`、PhotoIn.vue `('')` 三处编辑残留独立表达式 → setup 报 `{(...)(...)} is not a function`。规则：改完 vue 后 grep `^\([^)]*\)$` 扫残留；任何「行首括号独立成行」都是死代码
+2. **API 层迁移遗漏**：finance.js 有 receivableMonthly 缺 payableMonthly、trade.js 缺 customers → 页面报 `api.xxx is not a function`。规则：API 迁移后**脚本扫描全部页面 api.* 调用 vs 模块定义**（50 页面全量比对，本次扫出 2 处缺失）；应收应付/采购销售这种对称模块最容易漏一半
+
+### 构建流程坑（顺带修复，重大）
+- **`mvn package` 增量构建会把 target/classes 历史残留全带进 jar**：static 源清空后 jar 里仍残留 75 个旧 index-*.js/css，jar 从 36MB 膨胀到 97MB（60MB 死代码）
+- **必须 `mvn clean package`** + 发布前先清 static（`rm -rf static/assets/* static/*.html`，cp 不删旧文件）
+- 验证：`unzip -l target/*.jar | grep -c 'static/assets/index-.*\.js'` 应为 1
