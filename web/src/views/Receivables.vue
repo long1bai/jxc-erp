@@ -177,7 +177,6 @@ const settleRules = {
   voucherId: [{ required: true, message: '请选择单据', trigger: 'change' }],
   amount: [{ required: true, message: '请填写金额', trigger: 'change' }],
 }
-('summary')
 const summary = ref([])
 const monthly = ref([])
 const docs = ref([])

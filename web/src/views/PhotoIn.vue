@@ -124,7 +124,6 @@ const preview = ref(false)
 const formRules = {
   supplierId: [{ required: true, message: '请选择供应商', trigger: 'change' }],
 }
-('')
 const imageBase64 = ref('')
 const recognizing = ref(false)
 const recognized = ref(false)
