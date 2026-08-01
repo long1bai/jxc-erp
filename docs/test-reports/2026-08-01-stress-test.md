@@ -1,6 +1,6 @@
 # jxcERP v2 压力测试报告
 
-- 时间：2026-08-01 17:09:52
+- 时间：2026-08-01 18:51:00
 - 环境：http://127.0.0.1:8080
 - 测试数据：运行后已全量清理（SQL）+ 单据序列重同步
 
@@ -12,12 +12,12 @@
 | 20并发送货扣减 | ✅ | 成功20/20 库存 200.0→100.0 (期望100.0) 耗时0.4s |
 | 10并发同员工打卡 | ✅ | 成功1/10（应仅1条进行中） |
 | 10并发首插盘点单号 | ✅ | 成功10/10 [] |
-| 负载 dashboard/data | ✅ | p50=10ms p95=18ms max=21ms 错误0 |
-| 负载 materials | ✅ | p50=19ms p95=32ms max=55ms 错误0 |
-| 负载 orders | ✅ | p50=27ms p95=46ms max=66ms 错误0 |
-| 负载 purchase-stats/monthly | ✅ | p50=21ms p95=35ms max=53ms 错误0 |
-| 负载 finance/receivable-summary | ✅ | p50=68ms p95=91ms max=105ms 错误0 |
-| 负载 reports/reconciliation | ✅ | p50=11ms p95=22ms max=42ms 错误0 |
+| 负载 dashboard/data | ✅ | p50=9ms p95=152ms max=194ms 错误0 |
+| 负载 materials | ✅ | p50=15ms p95=22ms max=31ms 错误0 |
+| 负载 orders | ✅ | p50=15ms p95=25ms max=31ms 错误0 |
+| 负载 purchase-stats/monthly | ✅ | p50=16ms p95=25ms max=38ms 错误0 |
+| 负载 finance/receivable-summary | ✅ | p50=38ms p95=57ms max=63ms 错误0 |
+| 负载 reports/reconciliation | ✅ | p50=9ms p95=20ms max=36ms 错误0 |
 | 清理压测数据 | ✅ | 已清理 |
 
 ## 场景说明
