@@ -31,7 +31,7 @@ public interface BomMapper {
             "COALESCE(m.name,'') AS component_name, COALESCE(m.spec,'') AS component_spec, " +
             "COALESCE(m.unit,'') AS component_unit, " +
             "COALESCE((SELECT sm.after_stock FROM stock_movements sm " +
-            "WHERE sm.material_id = b.component_id AND sm.move_type='in' AND sm.deleted = 0 ORDER BY sm.id DESC LIMIT 1),0) AS stock " +
+            "WHERE sm.material_id = b.component_id AND sm.move_type='" + Constants.MOVE_IN + "' AND sm.deleted = 0 ORDER BY sm.id DESC LIMIT 1),0) AS stock " +
             "FROM bom_items b LEFT JOIN materials m ON m.id = b.component_id " +
             "WHERE b.product_id = #{productId} AND b.deleted = 0 ORDER BY b.id")
     List<Map<String, Object>> bomItems(@Param("productId") Long productId);

@@ -108,7 +108,7 @@
     </el-dialog>
 
     <!-- 明细弹窗 -->
-    <el-dialog v-model="viewVisible" title="盘点单明细" width="760px">
+    <el-dialog v-model="viewVisible" title="盘点单明细" width="820px">
       <el-descriptions :column="3" size="small" border style="margin-bottom: 10px">
         <el-descriptions-item label="盘点单号">{{ viewMain.st_no }}</el-descriptions-item>
         <el-descriptions-item label="日期">{{ viewMain.take_date }}</el-descriptions-item>
@@ -250,21 +250,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.search-bar { display: flex; gap: 8px; margin-bottom: 10px; }
-.pager { margin-top: 10px; justify-content: flex-end; }
+
+
 
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
-.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+
+
 </style>

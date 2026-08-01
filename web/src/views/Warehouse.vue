@@ -38,9 +38,9 @@
       <div v-if="!items.length" class="m-empty">暂无数据</div>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑仓库' : '新增仓库'" width="440px">
-      <el-form :model="form" label-width="70px">
-        <el-form-item label="名称" required><el-input v-model="form.name" placeholder="如：原料仓 / 成品仓" /></el-form-item>
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑仓库' : '新增仓库'" width="480px">
+      <el-form ref="formRef" :rules="formRules" :model="form" label-width="70px">
+        <el-form-item label="名称" required prop="name"><el-input v-model="form.name" placeholder="如：原料仓 / 成品仓" /></el-form-item>
         <el-form-item label="位置"><el-input v-model="form.location" placeholder="如：1楼东侧（可选）" /></el-form-item>
         <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" :rows="2" /></el-form-item>
       </el-form>
@@ -61,6 +61,10 @@ import request from '../utils/request'
 const items = ref([])
 const loading = ref(false)
 const isMobile = ref(window.innerWidth <= 767)
+const formRef = ref(null)
+const formRules = {
+  name: [{ required: true, message: '请填写名称', trigger: 'change' }],
+}
 window.addEventListener('resize', () => { isMobile.value = window.innerWidth <= 767 })
 const saving = ref(false)
 const dialogVisible = ref(false)
@@ -84,6 +88,8 @@ function openDialog(row) {
 }
 
 async function save() {
+  const ok = await formRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!form.name.trim()) {
     ElMessage.warning('请填写仓库名称')
     return
@@ -126,17 +132,14 @@ onMounted(load)
 <style scoped>
 
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
-.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+
+
 </style>

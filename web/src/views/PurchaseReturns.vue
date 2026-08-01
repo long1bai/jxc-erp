@@ -56,9 +56,9 @@
                    :page-size="size" :current-page="page" @current-change="load" />
 
     <!-- 新建弹窗 -->
-    <el-dialog v-model="createVisible" title="新建退货单" width="760px">
-      <el-form label-width="80px" size="small">
-        <el-form-item label="供应商" required>
+    <el-dialog v-model="createVisible" title="新建退货单" width="820px">
+      <el-form ref="createFormRef" :rules="createRules" label-width="80px" size="small">
+        <el-form-item label="供应商" prop="supplierId" required>
           <el-select v-model="form.supplierId" filterable placeholder="选择供应商" style="width: 100%">
             <el-option v-for="s in suppliers" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
@@ -141,6 +141,10 @@ const size = ref(20)
 const keyword = ref('')
 const loading = ref(false)
 const isMobile = ref(window.innerWidth <= 767)
+const createFormRef = ref(null)
+const createRules = {
+  supplierId: [{ required: true, message: '请选择供应商', trigger: 'change' }],
+}
 window.addEventListener('resize', () => { isMobile.value = window.innerWidth <= 767 })
 const saving = ref(false)
 const suppliers = ref([])
@@ -184,10 +188,8 @@ async function openCreate() {
 }
 
 async function save() {
-  if (!form.supplierId) {
-    ElMessage.warning('请选择供应商')
-    return
-  }
+  const ok = await createFormRef.value.validate().catch(() => false)
+  if (!ok) return
   const rows = form.items.filter((r) => r.materialId && r.quantity > 0)
   if (!rows.length) {
     ElMessage.warning('请添加退货明细')
@@ -238,24 +240,21 @@ onMounted(() => load(1))
 </script>
 
 <style scoped>
-.search-bar { display: flex; gap: 8px; margin-bottom: 10px; }
-.pager { margin-top: 10px; justify-content: flex-end; }
+
+
 .row-add { text-align: center; margin-bottom: 12px; }
 .hint { margin-left: 12px; font-size: 13px; color: #606266; }
-.mb { margin-bottom: 10px; }
+
 
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
-.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+
+
 </style>

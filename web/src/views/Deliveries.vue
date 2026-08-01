@@ -64,10 +64,10 @@
 
     <!-- 新建送货单弹窗 -->
     <el-dialog v-model="createVisible" title="新建送货单" width="820px" top="3vh">
-      <el-form label-width="80px" size="small">
+      <el-form ref="createFormRef" :rules="createRules" label-width="80px" size="small">
         <el-row :gutter="10">
           <el-col :span="9">
-            <el-form-item label="客户" required>
+            <el-form-item label="客户" prop="customerId" required>
               <el-select v-model="createForm.customerId" filterable placeholder="选择客户" style="width: 100%"
                          @change="onCustomerChange">
                 <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
@@ -170,7 +170,7 @@
     </el-dialog>
 
     <!-- 详情弹窗 -->
-    <el-dialog v-model="detailVisible" :title="'送货单 ' + (detail.main?.dn_no || '')" width="720px">
+    <el-dialog v-model="detailVisible" :title="'送货单 ' + (detail.main?.dn_no || '')" width="820px">
       <el-descriptions :column="isMobile ? 1 : 3" size="small" border class="mb">
         <el-descriptions-item label="客户">{{ detail.main?.customer_name }}</el-descriptions-item>
         <el-descriptions-item label="日期">{{ fmtDate(detail.main?.dn_date) }}</el-descriptions-item>
@@ -217,6 +217,10 @@ const size = ref(20)
 const keyword = ref('')
 const loading = ref(false)
 const isMobile = ref(window.innerWidth <= 767)
+const createFormRef = ref(null)
+const createRules = {
+  customerId: [{ required: true, message: '请选择客户', trigger: 'change' }],
+}
 window.addEventListener('resize', () => { isMobile.value = window.innerWidth <= 767 })
 const saving = ref(false)
 const customers = ref([])
@@ -254,9 +258,7 @@ async function load(p) {
   if (p) page.value = p
   loading.value = true
   try {
-    const res = await api.deliveries({
-      params: { keyword: keyword.value, page: page.value, size: size.value },
-    })
+    const res = await api.deliveries({ keyword: keyword.value, page: page.value, size: size.value })
     items.value = res.data.items
     total.value = Number(res.data.total)
   } catch (e) {
@@ -330,10 +332,8 @@ async function onOrderChange(oid) {
 }
 
 async function save() {
-  if (!createForm.customerId) {
-    ElMessage.warning('请选择客户')
-    return
-  }
+  const ok = await createFormRef.value.validate().catch(() => false)
+  if (!ok) return
   const valid = createForm.items.filter((it) => it.materialId && Number(it.quantity) > 0)
   if (!valid.length) {
     ElMessage.warning('请至少添加一条有效明细')
@@ -402,9 +402,7 @@ function openMaterialPicker(row) {
 async function searchMaterials(p) {
   if (p) pickerPage.value = p
   try {
-    const res = await api.materials({
-      params: { keyword: pickerKeyword.value, page: pickerPage.value, size: 20 },
-    })
+    const res = await api.materials({ keyword: pickerKeyword.value, page: pickerPage.value, size: 20 })
     pickerItems.value = res.data.items
     pickerTotal.value = Number(res.data.total)
   } catch (e) {
@@ -431,16 +429,8 @@ onMounted(() => { load(1); loadCustomers() })
 </script>
 
 <style scoped>
-.search-bar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.pager {
-  margin-top: 12px;
-  justify-content: flex-end;
-}
+
+
 .items-toolbar {
   display: flex;
   justify-content: space-between;
@@ -458,25 +448,20 @@ onMounted(() => { load(1); loadCustomers() })
   color: #909399;
   margin-left: 8px;
 }
-.mb {
-  margin-bottom: 10px;
-}
+
 .remark-item {
   margin-bottom: 8px;
 }
 
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
-.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+
+
 </style>

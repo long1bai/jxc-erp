@@ -19,8 +19,10 @@ import java.util.Map;
 @RequestMapping("/api/photo")
 public class PhotoController {
 
-    private static final String CONFIG_PATH = "I:/yawei-erp/photo_config.json";
     private static final ObjectMapper JSON = new ObjectMapper();
+
+    @org.springframework.beans.factory.annotation.Value("${app.photo-config}")
+    private String photoConfigPath;
 
     private final DashScopeClient dash;
     private final SupplierMapper supplierMapper;
@@ -53,7 +55,7 @@ public class PhotoController {
             Object content = List.of(
                     Map.of("type", "image_url", "image_url", Map.of("url", dataUrl)),
                     Map.of("type", "text", "text", RECOGNIZE_PROMPT));
-            String reply = dash.chat(CONFIG_PATH, "qwen3-vl-plus", "你是送货单识别专家。", content);
+            String reply = dash.chat(photoConfigPath, "qwen3-vl-plus", "你是送货单识别专家。", content);
 
             // 解析 JSON（容错：剥离 ``` 包裹、截取首个 { 到末尾 }）
             Map<String, Object> parsed = parseJson(reply);

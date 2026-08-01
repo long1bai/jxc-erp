@@ -36,6 +36,7 @@ import { ref, onMounted } from 'vue'
 import { DataAnalysis, Search } from '@element-plus/icons-vue'
 import request from '../utils/request'
 import PageHeader from '../components/PageHeader.vue'
+import FilterBar from '../components/FilterBar.vue'
 
 const range = ref(defaultMonthRange())
 const ins = ref([])

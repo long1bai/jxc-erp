@@ -57,7 +57,7 @@ public class ProductionController {
             return ApiResponse.fail("请添加产品明细");
         }
         String date = req.inDate() == null || req.inDate().isBlank() ? today() : req.inDate();
-        String piNo = seq.nextDaily("CPRK");
+        String piNo = seq.nextDaily(Constants.SEQ_PRODUCT_IN);
         BigDecimal totalQty = BigDecimal.ZERO;
         int totalItems = 0;
         mapper.piInsert(piNo, date, BigDecimal.ZERO, 0, req.remark() == null ? "" : req.remark());
@@ -126,7 +126,7 @@ public class ProductionController {
             return ApiResponse.fail("请添加退料明细");
         }
         String date = req.returnDate() == null || req.returnDate().isBlank() ? today() : req.returnDate();
-        String prtNo = seq.nextDaily("PCTL");
+        String prtNo = seq.nextDaily(Constants.SEQ_PRODUCT_RETURN);
         BigDecimal totalQty = BigDecimal.ZERO;
         mapper.prtInsert(prtNo, date, BigDecimal.ZERO, req.remark() == null ? "" : req.remark());
         Long prtId = mapper.lastPrtId(prtNo);

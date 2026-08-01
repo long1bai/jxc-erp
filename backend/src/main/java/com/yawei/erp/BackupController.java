@@ -16,17 +16,21 @@ import java.util.Map;
 @RequestMapping("/api/backup")
 public class BackupController {
 
-    private static final String BACKUP_DIR = "I:/yawei-erp-java/backup";
-    private static final String MYSQLDUMP = "C:/mysql/8.0.28/bin/mysqldump.exe";
+
+    @org.springframework.beans.factory.annotation.Value("${app.backup-dir}")
+    private String backupDir;
+
+    @org.springframework.beans.factory.annotation.Value("${app.mysqldump-path}")
+    private String mysqldumpPath;
 
     @PostMapping("/create")
     public Map<String, Object> create() {
         try {
-            Files.createDirectories(Path.of(BACKUP_DIR));
+            Files.createDirectories(Path.of(backupDir));
             String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String file = BACKUP_DIR + "/yawei_erp_" + stamp + ".sql";
+            String file = backupDir + "/yawei_erp_" + stamp + ".sql";
             ProcessBuilder pb = new ProcessBuilder(
-                    MYSQLDUMP, "-u", "root", "--default-character-set=utf8mb4",
+                    mysqldumpPath, "-u", "root", "--default-character-set=utf8mb4",
                     "--single-transaction", "--routines", "--triggers",
                     "yawei_erp", "-r", file);
             pb.redirectErrorStream(true);
@@ -48,7 +52,7 @@ public class BackupController {
 
     @GetMapping("/list")
     public Map<String, Object> list() {
-        File dir = new File(BACKUP_DIR);
+        File dir = new File(backupDir);
         File[] files = dir.exists() ? dir.listFiles((d, n) -> n.endsWith(".sql")) : new File[0];
         var items = Arrays.stream(files == null ? new File[0] : files)
                 .sorted(Comparator.comparingLong(File::lastModified).reversed())
@@ -70,7 +74,7 @@ public class BackupController {
             if (name.contains("..") || name.contains("/") || name.contains("\\\\") || !name.endsWith(".sql")) {
                 return org.springframework.http.ResponseEntity.badRequest().build();
             }
-            Path file = Path.of(BACKUP_DIR, name);
+            Path file = Path.of(backupDir, name);
             if (!Files.exists(file)) {
                 return org.springframework.http.ResponseEntity.notFound().build();
             }
@@ -91,7 +95,7 @@ public class BackupController {
         if (name == null || name.contains("..") || name.contains("/") || name.contains("\\\\") || !name.endsWith(".sql")) {
             return ApiResponse.fail("备份文件名无效");
         }
-        Path file = Path.of(BACKUP_DIR, name);
+        Path file = Path.of(backupDir, name);
         if (!Files.exists(file)) {
             return ApiResponse.fail("备份文件不存在");
         }

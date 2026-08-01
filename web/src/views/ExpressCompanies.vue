@@ -14,7 +14,7 @@
       <el-table-column prop="contact" label="联系人" width="110" />
       <el-table-column prop="phone" label="电话" width="140" />
       <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
-      <el-table-column label="操作" width="130">
+      <el-table-column label="操作" width="130" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
           <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
@@ -39,7 +39,7 @@
       <div v-if="!items.length" class="m-empty">暂无数据</div>
     </div>
 
-    <el-dialog v-model="visible" :title="editing ? '编辑物流公司' : '新增物流公司'" width="460px" destroy-on-close>
+    <el-dialog v-model="visible" :title="editing ? '编辑物流公司' : '新增物流公司'" width="480px" destroy-on-close>
       <el-form label-width="80px" size="small">
         <el-form-item label="名称" required>
           <el-input v-model="form.name" placeholder="如：顺丰速运、德邦物流" size="small" />

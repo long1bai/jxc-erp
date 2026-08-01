@@ -38,77 +38,78 @@ public class CatalogController {
 
             // 报工
             new MenuNode("work", "报工", "Timer",
-                    List.of("admin", "dev", "boss"),
+                    List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS),
                     List.of(
-                            new MenuNode("/work/reports", "报工登记", "Timer", List.of("admin", "dev"), null),
-                            new MenuNode("/work/stats", "报工统计", "DataAnalysis", List.of("admin", "dev", "boss"), null),
-                            new MenuNode("/work/settings", "报工设置", "Setting", List.of("admin", "dev"), null))),
+                            new MenuNode("/work/reports", "报工登记", "Timer", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/work/stats", "报工统计", "DataAnalysis", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS), null),
+                            new MenuNode("/work/settings", "报工设置", "Setting", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null))),
 
             // 进销存（admin）
             new MenuNode("trade", "进销存", "ShoppingCart",
-                    List.of("admin"),
+                    List.of(Constants.ROLE_ADMIN),
                     List.of(
-                            new MenuNode("/orders", "客户订单", null, List.of("admin"), null),
-                            new MenuNode("/deliveries", "送货单", null, List.of("admin"), null),
-                            new MenuNode("/sales-returns", "销售退货", null, List.of("admin", "dev"), null),
-                            new MenuNode("/purchases", "采购入库", null, List.of("admin"), null),
-                            new MenuNode("/purchase-returns", "采购退货", null, List.of("admin"), null))),
+                            new MenuNode("/orders", "客户订单", "Document", List.of(Constants.ROLE_ADMIN), null),
+                            new MenuNode("/deliveries", "送货单", "Van", List.of(Constants.ROLE_ADMIN), null),
+                            new MenuNode("/sales-returns", "销售退货", "RefreshLeft", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/purchases", "采购入库", "Box", List.of(Constants.ROLE_ADMIN), null),
+                            new MenuNode("/purchase-returns", "采购退货", "RefreshLeft", List.of(Constants.ROLE_ADMIN), null))),
 
             // 库存报表
-            new MenuNode("stock-report", "库存报表", "DataAnalysis",
-                    List.of("admin", "dev", "boss"),
+            new MenuNode("stock-report", "报表中心", "DataAnalysis",
+                    List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS),
                     List.of(
-                            new MenuNode("/stock/inventory", "库存查询", null, List.of(), null),
-                            new MenuNode("/stock-takes", "库存盘点", null, List.of("admin", "dev"), null),
-                            new MenuNode("/purchase-reports", "采购报表", null, List.of("admin", "dev", "boss"), null),
-                            new MenuNode("/sales-reports", "销售报表", null, List.of("admin", "dev", "boss"), null),
-                            new MenuNode("/reports", "报表中心", null, List.of("admin", "dev", "boss"), null),
-                            new MenuNode("/bom", "BOM 配方", null, List.of("admin", "dev"), null))),
+                            new MenuNode("/stock/inventory", "库存查询", "Box", List.of(), null),
+                            new MenuNode("/stock-takes", "库存盘点", "Clipboard", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/purchase-reports", "采购报表", "DataLine", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS), null),
+                            new MenuNode("/sales-reports", "销售报表", "DataLine", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS), null),
+                            new MenuNode("/reports", "报表中心", "DataAnalysis", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS), null),
+                            new MenuNode("/bom", "BOM 配方", "Files", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null))),
 
             // 财务
             new MenuNode("finance", "财务", "Wallet",
-                    List.of("admin", "boss"),
+                    List.of(Constants.ROLE_ADMIN, Constants.ROLE_BOSS),
                     List.of(
-                            new MenuNode("/finance/receivables", "应收款", "ArrowDown", List.of("admin", "boss"), null),
-                            new MenuNode("/finance/payables", "应付款", "ArrowUp", List.of("admin", "boss"), null),
-                            new MenuNode("/finance/vouchers?tab=receipts", "收款单", "Money", List.of("admin", "boss"), null),
-                            new MenuNode("/finance/vouchers?tab=payments", "付款单", "Money", List.of("admin", "boss"), null),
-                            new MenuNode("/finance/accounts", "资金账户", "Wallet", List.of("admin"), null),
-                            new MenuNode("/finance/funds", "收支转账", "Money", List.of("admin"), null),
-                            new MenuNode("/finance/account-reports", "收支报表", "DataAnalysis", List.of("admin", "boss"), null))),
+                            new MenuNode("/finance/receivables", "应收款", "ArrowDown", List.of(Constants.ROLE_ADMIN, Constants.ROLE_BOSS), null),
+                            new MenuNode("/finance/payables", "应付款", "ArrowUp", List.of(Constants.ROLE_ADMIN, Constants.ROLE_BOSS), null),
+                            new MenuNode("/finance/vouchers?tab=receipts", "收款单", "Money", List.of(Constants.ROLE_ADMIN, Constants.ROLE_BOSS), null),
+                            new MenuNode("/finance/vouchers?tab=payments", "付款单", "Money", List.of(Constants.ROLE_ADMIN, Constants.ROLE_BOSS), null),
+                            new MenuNode("/finance/accounts", "资金账户", "Wallet", List.of(Constants.ROLE_ADMIN), null),
+                            new MenuNode("/finance/funds", "收支转账", "Money", List.of(Constants.ROLE_ADMIN), null),
+                            new MenuNode("/finance/account-reports", "收支报表", "DataAnalysis", List.of(Constants.ROLE_ADMIN, Constants.ROLE_BOSS), null))),
 
             // 生产
             new MenuNode("production", "生产", "Box",
-                    List.of("admin", "dev", "boss"),
+                    List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS),
                     List.of(
-                            new MenuNode("/production/ins", "成品入库", null, List.of("admin", "dev"), null),
-                            new MenuNode("/production/returns", "生产退料", null, List.of("admin", "dev"), null),
-                            new MenuNode("/production/stats", "生产统计", null, List.of("admin", "dev", "boss"), null))),
+                            new MenuNode("/production/ins", "成品入库", "Box", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/production/returns", "生产退料", "RefreshLeft", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/production/stats", "生产统计", "DataAnalysis", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV, Constants.ROLE_BOSS), null))),
 
             // 员工专用顶层项
-            new MenuNode("/work/reports", "报工登记", "Timer", List.of("employee"), null),
-            new MenuNode("/stock/inventory", "库存查询", "Box", List.of("employee"), null),
+            new MenuNode("/work/reports", "报工登记", "Timer", List.of(Constants.ROLE_EMPLOYEE), null),
+            new MenuNode("/stock/inventory", "库存查询", "Box", List.of(Constants.ROLE_EMPLOYEE), null),
 
             // AI
-            new MenuNode("/ai/chat", "AI 报价", "MagicStick", List.of("admin", "boss", "dev"), null),
-            new MenuNode("/ai/photo", "拍照入库", "Camera", List.of("admin", "boss", "employee"), null),
+            new MenuNode("/ai/chat", "AI 报价", "MagicStick", List.of(Constants.ROLE_ADMIN, Constants.ROLE_BOSS, Constants.ROLE_DEV), null),
+            new MenuNode("/ai/photo", "拍照入库", "Camera", List.of(Constants.ROLE_ADMIN, Constants.ROLE_BOSS, Constants.ROLE_EMPLOYEE), null),
 
             // 基础资料
             new MenuNode("base", "基础资料", "Collection",
-                    List.of("admin", "dev"),
+                    List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV),
                     List.of(
-                            new MenuNode("/base/customers", "客户", null, List.of("admin", "dev"), null),
-                            new MenuNode("/base/suppliers", "供应商", null, List.of("admin", "dev"), null),
-                            new MenuNode("/base/materials", "物料", null, List.of("admin", "dev"), null),
-                            new MenuNode("/base/warehouses", "仓库", null, List.of("admin", "dev"), null),
-                            new MenuNode("/base/express", "快递物流", null, List.of("admin", "dev"), null))),
+                            new MenuNode("/base/customers", "客户", "User", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/base/suppliers", "供应商", "Van", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/base/materials", "物料", "Goods", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/base/warehouses", "仓库", "House", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/base/express", "快递物流", "Van", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null))),
 
             // 系统
             new MenuNode("system", "系统", "Setting",
-                    List.of("admin", "dev"),
+                    List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV),
                     List.of(
-                            new MenuNode("/system/users", "用户管理", null, List.of("admin", "dev"), null),
-                            new MenuNode("/system/backup", "数据备份", null, List.of("admin", "dev"), null))),
+                            new MenuNode("/system/users", "用户管理", "User", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/system/backup", "数据备份", "FolderOpened", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null),
+                            new MenuNode("/system/logs", "操作日志", "Document", List.of(Constants.ROLE_ADMIN, Constants.ROLE_DEV), null))),
 
             // 帮助
             new MenuNode("/help", "使用指南", "QuestionFilled", List.of(), null));

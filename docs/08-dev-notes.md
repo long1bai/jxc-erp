@@ -132,6 +132,15 @@
 - 页面：资金账户/收支转账（admin 财务组）、收支报表（admin+boss 财务组）
 - 完整利润口径：销售毛利（销售报表）− 支出 + 其他收入 = 净利
 
+## 6.16 接口文档 + Git 分支规范（2026-08-01，企业级清单落地）
+
+- **接口文档（springdoc 3.0.3）**：pom 加 `springdoc-openapi-starter-webmvc-ui`；访问 `/swagger-ui/index.html`（界面）/ `/v3/api-docs`（JSON）
+  - **⚠️ 坑**：Knife4j 4.5.0 内置 springdoc 2.x，与 SpringBoot 4.1 **不兼容**（`NoSuchMethodError: ControllerAdviceBean.<init>`，api-docs 500）——knife4j 4.x 是 SB3 时代产物，SB4 必须用 **springdoc 3.x**
+  - 自动生成 20+ 接口文档；生产环境可配 `springdoc.api-docs.enabled=false` 关闭
+- **Git 分支规范**：`git init -b main` + .gitignore（target/node_modules/dist/backup/*.log）+ 首次提交（255 文件基线）+ `git branch dev`
+  - 以后：新功能在 **dev** 分支开发 → 验证通过 → 合并 main（`git checkout main && git merge dev`）
+  - 本地 git 用户：YaweiDev <dev@yawei.local>（git config user.name/email）
+
 ## 6.15 前端增量改进（2026-08-01，多角色分析后实施）
 
 - **结论**：不全面重构（页面少/无技术债/生产中使用/业界 Strangler Fig 渐进式）；做增量规范化
@@ -198,3 +207,40 @@
 - Windows Python 不识别 /c/mysql → 用 C:/mysql/...
 - el-table 带 fixed 列在容器隐藏/切换时报 `parentNode null`（Element Plus 已知）→ 分页表格组件内不用 fixed
 - 调试清理脚本按前缀删文件会误删用户实测照片 → 清理只删自己脚本的精确文件名
+
+## 6.17 扩展开发指南（前后端可扩展设计，2026-08-01）
+
+### 新增一个功能模块的标准流程（前后端 4 步）
+
+**后端（新模块三层结构）：**
+1. 建表（DDL，复制现有表结构模式：id 雪花 + deleted + ext_json）
+2. `XxxMapper.java`（@Mapper 接口 + @Select/@Insert 注解 SQL，分页用 IPage 参数）
+3. `XxxController.java` **继承 BaseController**（模板方法模式：pageParams/ok/fail/pageResult 统一）
+   - 写操作会被 OperationLogInterceptor 自动记录（无需手动加日志）
+4. 触发器（如需雪花主键，复制 v3 IF 版触发器模式）
+
+**前端：**
+1. 复制 `web/src/templates/ListPageTemplate.vue` → `views/XxxXxx.vue`，改 API 路径/字段/表格列
+2. `router/index.js` 加一行路由（roles 权限）
+3. 后端 `CatalogController.MENU_TREE` 加菜单项（`new MenuNode("/xxx/yyy", "名称", "图标", 角色列表, null)`）——菜单自动出现，无需改前端
+4. 手机端：模板已含 m-cards 卡片化；FilterBar/PageHeader/PaginatedTable 公共组件直接复用
+
+### 设计模式应用（能用则用，不过度设计）
+
+| 模式 | 落地位置 | 用途 |
+|---|---|---|
+| 模板方法 | BaseController（新 Controller 继承） | 分页/响应/边界统一 |
+| 工厂 | 前端 api/ 模块（trade.js/finance.js 等） | 接口封装统一出口 |
+| 适配器 | 前端公共组件（FilterBar/PageHeader/PaginatedTable） | 跨页面复用一致交互 |
+| 观察者 | OperationLogInterceptor（拦截器自动记日志） | 写操作自动审计，零侵入 |
+| 单例 | SessionStore / Spring 单例 Bean | 全局唯一状态 |
+| 策略（可选） | 后续多规则场景（如不同单据不同审批流） | 规则可插拔 |
+
+### 关键约定（扩展时必守）
+
+- 新 Controller 一律 `extends BaseController`；响应走 ApiResponse.ok/fail
+- 路径配置走 application.yml `app:` 节（@Value 注入），不硬编码
+- 业务魔法值进 Constants.java（单号前缀/角色/move_type）
+- 写操作自动入操作日志表（operation_logs），无需手动
+- 新菜单进 MENU_TREE（角色可见性在这里控制），前端零改动
+- 分页接口统一返回 {items, total, current, size}（PageResult.toMap()）

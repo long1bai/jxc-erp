@@ -70,6 +70,7 @@ const router = createRouter({
         { path: 'base/express', component: ExpressCompanies, meta: { title: '快递物流', roles: ['admin', 'dev'] } },
         { path: 'system/users', component: Users, meta: { title: '用户管理', roles: ['admin', 'dev'] } },
         { path: 'system/backup', component: Backup, meta: { title: '数据备份', roles: ['admin', 'dev'] } },
+        { path: 'system/logs', component: () => import('../views/OperationLogs.vue'), meta: { title: '操作日志', roles: ['admin', 'dev'] } },
         { path: 'base/customers', component: Customers, meta: { title: '客户', roles: ['admin', 'dev'] } },
         { path: 'base/suppliers', component: Suppliers, meta: { title: '供应商', roles: ['admin', 'dev'] } },
         { path: 'base/materials', component: Materials, meta: { title: '物料', roles: ['admin', 'dev'] } },

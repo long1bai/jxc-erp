@@ -74,14 +74,14 @@
       :current-page="page"
       :page-sizes="[10, 20, 50, 100]"
       @current-change="load"
-      @size-change="(s) => { size = s; load(1) }"
+      @size-change="onSizeChange"
     />
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑物料' : '新增物料'" width="520px">
-      <el-form :model="form" label-width="90px">
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑物料' : '新增物料'" width="640px">
+      <el-form ref="formRef" :rules="formRules" :model="form" label-width="90px">
         <el-form-item label="编号"><el-input v-model="form.code" placeholder="物料编号（可选）" /></el-form-item>
-        <el-form-item label="名称" required>
+        <el-form-item label="名称" required prop="name">
           <el-input v-model="form.name" placeholder="物料名称" />
         </el-form-item>
         <el-form-item label="规格"><el-input v-model="form.spec" placeholder="如 18AWG 红" /></el-form-item>
@@ -127,21 +127,31 @@ const size = ref(20)
 const keyword = ref('')
 const loading = ref(false)
 const isMobile = ref(window.innerWidth <= 767)
+const formRef = ref(null)
+const formRules = {
+  name: [{ required: true, message: '请填写名称', trigger: 'change' }],
+}
 window.addEventListener('resize', () => { isMobile.value = window.innerWidth <= 767 })
 const saving = ref(false)
 const dialogVisible = ref(false)
 const form = reactive({ id: null, code: '', name: '', spec: '', unit: '', category: '', purchasePrice: null, salePrice: null, minStock: null, remark: '' })
 
+function onSizeChange(s) {
+  size.value = s
+  load(1)
+}
+
 async function load(p) {
   if (p) page.value = p
+  console.log('[Materials] load 请求 page =', page.value, 'size =', size.value)
   loading.value = true
   try {
-    const res = await api.materials({
-      params: { keyword: keyword.value, page: page.value, size: size.value },
-    })
+    const res = await api.materials({ keyword: keyword.value, page: page.value, size: size.value })
     items.value = res.data.items
     total.value = Number(res.data.total)
+    console.log('[Materials] 返回 items 首条 id =', items.value[0]?.id, '条数 =', items.value.length, 'total =', total.value)
   } catch (e) {
+    console.log('[Materials] 请求失败:', e.message)
     ElMessage.error(e.message)
   } finally {
     loading.value = false
@@ -159,6 +169,8 @@ function openDialog(row) {
 }
 
 async function save() {
+  const ok = await formRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!form.name.trim()) {
     ElMessage.warning('请填写物料名称')
     return
@@ -199,28 +211,18 @@ onMounted(() => load(1))
 </script>
 
 <style scoped>
-.search-bar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.pager {
-  margin-top: 12px;
-  justify-content: flex-end;
-}
+
+
 
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
-.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+
+
 </style>

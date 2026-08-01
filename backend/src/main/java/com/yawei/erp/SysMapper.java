@@ -15,7 +15,7 @@ import java.util.Map;
 public interface SysMapper {
 
     /** 当前库存（流水汇总，已删流水不计——逻辑删除单据后库存自动回补） */
-    @Select("SELECT COALESCE(SUM(CASE WHEN move_type='in' THEN quantity WHEN move_type='out' THEN -quantity WHEN move_type='adjust' THEN quantity ELSE 0 END),0) " +
+    @Select("SELECT COALESCE(SUM(CASE WHEN move_type='" + Constants.MOVE_IN + "' THEN quantity WHEN move_type='" + Constants.MOVE_OUT + "' THEN -quantity WHEN move_type='" + Constants.MOVE_ADJUST + "' THEN quantity ELSE 0 END),0) " +
             "FROM stock_movements WHERE material_id = #{materialId} AND deleted = 0")
     BigDecimal currentStock(@Param("materialId") Long materialId);
 

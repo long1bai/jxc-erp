@@ -72,13 +72,13 @@
 
     <!-- 新建弹窗 -->
     <el-dialog v-model="createVisible" :title="'新建' + (tab === 'receipts' ? '收款单' : '付款单')" width="480px">
-      <el-form label-width="90px" size="small">
-        <el-form-item :label="tab === 'receipts' ? '客户' : '供应商'" required>
+      <el-form ref="formRef" :rules="formRules" label-width="90px" size="small">
+        <el-form-item :label="tab === 'receipts' ? '客户' : '供应商'" required prop="partyId">
           <el-select v-model="form.partyId" filterable placeholder="选择" style="width: 100%">
             <el-option v-for="p in parties" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="金额" required>
+        <el-form-item label="金额" required prop="amount">
           <el-input-number v-model="form.amount" :min="0.01" :precision="2" :step="100" style="width: 200px" />
         </el-form-item>
         <el-form-item label="日期">
@@ -125,6 +125,11 @@ const page = ref(1)
 const size = ref(20)
 const keyword = ref('')
 const loading = ref(false)
+const formRef = ref(null)
+const formRules = {
+  partyId: [{ required: true, message: '请选择往来单位', trigger: 'change' }],
+  amount: [{ required: true, message: '请填写金额', trigger: 'change' }],
+}
 const saving = ref(false)
 const createVisible = ref(false)
 const parties = ref([])
@@ -162,6 +167,8 @@ async function openCreate() {
 }
 
 async function save() {
+  const ok = await formRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!form.partyId || !form.amount) {
     ElMessage.warning('请选择往来单位并填写金额')
     return
@@ -214,6 +221,6 @@ onMounted(() => load(1))
 </script>
 
 <style scoped>
-.search-bar { display: flex; gap: 8px; margin-bottom: 10px; }
-.pager { margin-top: 10px; justify-content: flex-end; }
+
+
 </style>

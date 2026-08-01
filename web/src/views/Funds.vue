@@ -41,7 +41,7 @@
             </template>
           </el-table-column>
           <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
-          <el-table-column label="操作" width="80">
+          <el-table-column label="操作" width="80" fixed="right">
             <template #default="{ row }">
               <el-button link type="danger" size="small" @click="removeIe(row)">删除</el-button>
             </template>
@@ -66,7 +66,7 @@
             <template #default="{ row }">￥{{ fmt(row.amount) }}</template>
           </el-table-column>
           <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
-          <el-table-column label="操作" width="80">
+          <el-table-column label="操作" width="80" fixed="right">
             <template #default="{ row }">
               <el-button link type="danger" size="small" @click="removeTf(row)">删除</el-button>
             </template>
@@ -79,7 +79,7 @@
     </el-tabs>
 
     <!-- 收支弹窗 -->
-    <el-dialog v-model="ieVisible" :title="ieForm.ieType === 'income' ? '记收入' : '记支出'" width="460px" destroy-on-close>
+    <el-dialog v-model="ieVisible" :title="ieForm.ieType === 'income' ? '记收入' : '记支出'" width="480px" destroy-on-close>
       <el-form label-width="80px" size="small">
         <el-form-item label="分类" required>
           <el-select v-model="ieForm.category" filterable allow-create default-first-option size="small"
@@ -109,7 +109,7 @@
     </el-dialog>
 
     <!-- 转账弹窗 -->
-    <el-dialog v-model="tfVisible" title="新建转账" width="460px" destroy-on-close>
+    <el-dialog v-model="tfVisible" title="新建转账" width="480px" destroy-on-close>
       <el-form label-width="90px" size="small">
         <el-form-item label="转出账户" required>
           <el-select v-model="tfForm.fromId" size="small" style="width: 100%">
@@ -275,5 +275,5 @@ onMounted(async () => {
 
 <style scoped>
 .toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
-.pager { margin-top: 10px; justify-content: flex-end; }
+
 </style>

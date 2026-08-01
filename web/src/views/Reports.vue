@@ -49,11 +49,10 @@
                      style="width: 220px" @change="loadRecon('sales')">
             <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
-          <el-date-picker v-model="reconSales.range" type="daterange" value-format="YYYY-MM-DD" size="small"
-                          range-separator="~" start-placeholder="开始" end-placeholder="结束" style="width: 250px" />
-          <el-button type="primary" size="small" @click="loadRecon('sales')">查询</el-button>
+          <FilterBar v-model="reconSales.range" @query="loadRecon('sales')">
           <el-button v-if="reconSales.partyId" size="small" @click="backRecon('sales')">← 全部客户</el-button>
           <el-button size="small" :disabled="!reconSales.partyId || !reconSales.items.length" @click="printRecon('sales')">🖨 打印对账单</el-button>
+          </FilterBar>
         </div>
         <!-- 汇总视图（未选客户）：点行进入该客户明细 -->
         <el-table v-if="!reconSales.partyId" :data="reconSales.items" size="small" stripe max-height="400"
@@ -93,11 +92,10 @@
                      style="width: 220px" @change="loadRecon('purchase')">
             <el-option v-for="s in suppliers" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
-          <el-date-picker v-model="reconPurchase.range" type="daterange" value-format="YYYY-MM-DD" size="small"
-                          range-separator="~" start-placeholder="开始" end-placeholder="结束" style="width: 250px" />
-          <el-button type="primary" size="small" @click="loadRecon('purchase')">查询</el-button>
+          <FilterBar v-model="reconPurchase.range" @query="loadRecon('purchase')">
           <el-button v-if="reconPurchase.partyId" size="small" @click="backRecon('purchase')">← 全部供应商</el-button>
           <el-button size="small" :disabled="!reconPurchase.partyId || !reconPurchase.items.length" @click="printRecon('purchase')">🖨 打印对账单</el-button>
+          </FilterBar>
         </div>
         <!-- 汇总视图（未选供应商） -->
         <el-table v-if="!reconPurchase.partyId" :data="reconPurchase.items" size="small" stripe max-height="400"
@@ -132,9 +130,7 @@
       <!-- 利润分析 -->
       <el-tab-pane label="💹 利润分析" name="profit">
         <div class="search-bar">
-          <el-date-picker v-model="profitRange" type="daterange" value-format="YYYY-MM-DD" size="small"
-                          range-separator="~" start-placeholder="开始" end-placeholder="结束" style="width: 250px" />
-          <el-button type="primary" size="small" @click="loadProfit">查询</el-button>
+          <FilterBar v-model="profitRange" @query="loadProfit"></FilterBar>
         </div>
         <div class="profit-cards" v-if="profitSummary">
           <div class="p-card"><div class="p-label">销售额</div><div class="p-val">{{ fmt(profitSummary.sales) }}</div></div>
@@ -197,6 +193,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
+import FilterBar from '../components/FilterBar.vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
@@ -332,10 +329,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.search-bar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+
 .hint { font-size: 12px; color: #909399; }
 .sub-title { font-size: 13px; font-weight: 600; color: #303133; margin: 12px 0 6px; }
-.sum-bar { margin-top: 10px; font-size: 13px; color: #606266; text-align: right; }
+
 .recon-summary :deep(.el-table__row) { cursor: pointer; }
 .profit-cards { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .p-card { flex: 1; min-width: 140px; background: #f7f8fa; border-radius: 6px; padding: 12px; text-align: center; }

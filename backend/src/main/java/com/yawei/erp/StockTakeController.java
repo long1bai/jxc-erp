@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-/** 库存盘点：录入实盘数 → 确认后按差异调整库存（move_type='adjust' 流水，盘盈+盘亏-）
+/** 库存盘点：录入实盘数 → 确认后按差异调整库存（move_type=Constants.MOVE_ADJUST 流水，盘盈+盘亏-）
  *  期初库存 = 第一次盘点录入实盘数即建立 */
 @RestController
 @RequestMapping("/api/stock-takes")
@@ -58,7 +58,7 @@ public class StockTakeController {
             return ApiResponse.fail("请添加盘点明细");
         }
         String date = req.takeDate() == null || req.takeDate().isBlank() ? today() : req.takeDate();
-        String stNo = seq.nextDaily("PD");
+        String stNo = seq.nextDaily(Constants.SEQ_STOCK_TAKE);
         BigDecimal totalDiffQty = BigDecimal.ZERO;
         BigDecimal totalDiffAmt = BigDecimal.ZERO;
         int totalItems = 0;

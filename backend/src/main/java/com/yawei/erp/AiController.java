@@ -2,6 +2,7 @@ package com.yawei.erp;
 
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.beans.factory.annotation.Value;
 import java.util.Map;
 
 /** AI 报价助手（DashScope qwen-plus，配置沿用 Python 版 ai_config.json） */
@@ -9,7 +10,8 @@ import java.util.Map;
 @RequestMapping("/api/ai")
 public class AiController {
 
-    private static final String CONFIG_PATH = "I:/yawei-erp/ai_config.json";
+    @Value("${app.ai-config}")
+    private String configPath;
 
     private final DashScopeClient dash;
 
@@ -23,7 +25,7 @@ public class AiController {
             return ApiResponse.fail("请输入报价需求");
         }
         try {
-            String reply = dash.chat(CONFIG_PATH, "qwen-plus", SYSTEM_PROMPT, req.message());
+            String reply = dash.chat(configPath, "qwen-plus", SYSTEM_PROMPT, req.message());
             return ApiResponse.ok(Map.of("reply", reply));
         } catch (Exception e) {
             return ApiResponse.fail("AI 报价服务调用失败：" + e.getMessage());

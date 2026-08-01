@@ -15,7 +15,7 @@
             <!-- 开工前 -->
             <template v-if="!active">
               <div class="p-field">
-                <div class="p-label">姓名</div>
+                <div class="p-label"><span class="req">*</span>姓名</div>
                 <el-select v-model="form.employeeId" filterable placeholder="选择姓名" size="small"
                            style="width: 100%" @change="onEmpChange">
                   <el-option v-for="e in employees" :key="e.id"
@@ -23,7 +23,7 @@
                 </el-select>
               </div>
               <div class="p-field">
-                <div class="p-label">工序</div>
+                <div class="p-label"><span class="req">*</span>工序</div>
                 <el-select v-model="form.processId" filterable placeholder="选择工序" size="small"
                            style="width: 100%">
                   <el-option v-for="p in filteredProcesses" :key="p.id"
@@ -51,8 +51,11 @@
               </div>
               <div class="p-field">
                 <div class="p-label">开始时间 <span class="p-optional">默认当前，可改</span></div>
+              <div class="p-time-row">
                 <el-time-picker v-model="form.startTime" value-format="HH:mm:ss" placeholder="现在"
-                                style="width: 100%" size="small" />
+                                style="flex: 1" size="small" />
+                <el-button link type="primary" size="small" @click="setNow('startTime')">现在</el-button>
+              </div>
               </div>
               <div class="p-field">
                 <div class="p-label">拍照 <span class="p-optional">选填，最多3张</span></div>
@@ -90,14 +93,17 @@
                 <small class="timer-sub">已用时间（自动扣除午休/晚餐）</small>
               </div>
               <div class="p-field">
-                <div class="p-label">完成数量</div>
+                <div class="p-label"><span class="req">*</span>完成数量</div>
                 <el-input-number v-model="finishQty" :min="1" :precision="2" :step="10"
                                  controls-position="right" style="width: 100%" size="small" />
               </div>
               <div class="p-field">
                 <div class="p-label">结束时间 <span class="p-optional">默认当前，可改</span></div>
+              <div class="p-time-row">
                 <el-time-picker v-model="finishTime" value-format="HH:mm:ss" placeholder="现在"
-                                style="width: 100%" size="small" />
+                                style="flex: 1" size="small" />
+                <el-button link type="primary" size="small" @click="setNow('finishTime')">现在</el-button>
+              </div>
               </div>
               <div v-if="photoPreviews.length" class="active-photos">
                 <img v-for="(p, i) in photoPreviews" :key="i" :src="p" alt="报工照片" class="active-photo" />
@@ -113,8 +119,11 @@
 
           <!-- 今日已完成 -->
           <div class="punch-done">
-            <div class="done-title">今日已完成</div>
-            <el-table :data="myDone" size="small" stripe max-height="320">
+            <div class="done-title">
+              今日已完成
+              <span v-if="myDone.length" class="done-sum">共 {{ myDone.length }} 次 · {{ myDoneTotal }} 件</span>
+            </div>
+            <el-table :data="myDone" size="small" stripe max-height="520">
               <el-table-column label="时间" width="90">
                 <template #default="{ row }">{{ (row.end_time || '').slice(11, 16) }}</template>
               </el-table-column>
@@ -143,7 +152,7 @@
             <el-icon><Plus /></el-icon> 补录报工
           </el-button>
         </div>
-        <el-table :data="items" size="small" stripe v-loading="loading" max-height="460">
+        <el-table v-if="!isMobile" :data="items" size="small" stripe v-loading="loading" max-height="460">
           <el-table-column prop="report_date" label="日期" width="100"  sortable/>
           <el-table-column prop="employee_name" label="员工" width="100" />
           <el-table-column prop="group_name" label="分组" width="80" />
@@ -175,21 +184,58 @@
           </el-table-column>
           <template #empty><el-empty description="暂无报工记录" :image-size="60" /></template>
         </el-table>
+        <!-- 卡片（手机） -->
+        <div v-else class="m-cards">
+          <div v-for="row in items" :key="row.id" class="m-card">
+            <div class="m-card-head">
+              <span class="m-name">{{ row.employee_name }} · {{ row.process_name }}</span>
+              <span style="display:flex;align-items:center;gap:6px">
+                <img v-if="Number(row.image_count) > 0 && row.first_image" :src="row.first_image" class="m-thumb" alt=""
+                     @error="e => e.target.style.display = 'none'" />
+                <el-tag size="small" type="info">{{ (row.start_time || '').slice(11, 16) }}–{{ (row.end_time || '').slice(11, 16) }}</el-tag>
+              </span>
+            </div>
+            <div class="m-card-body">
+              <div class="m-row"><span>日期</span><b>{{ row.report_date }}</b></div>
+              <div class="m-row"><span>分组</span><b>{{ row.group_name || '—' }}</b></div>
+              <div class="m-row"><span>数量</span><b>{{ row.quantity }}</b></div>
+              <div class="m-row"><span>时长</span><b>{{ row.duration }}</b></div>
+              <div class="m-row"><span>工资</span><b>￥{{ fmt(row.wage) }}</b></div>
+              <div class="m-row" v-if="row.remark"><span>备注</span><b>{{ row.remark }}</b></div>
+            </div>
+            <div class="m-actions">
+              <el-button link type="danger" size="small" @click.stop="remove(row)">删除</el-button>
+            </div>
+          </div>
+          <div v-if="!items.length" class="m-empty">暂无报工记录</div>
+        </div>
         <el-pagination class="pager" background layout="total, prev, pager, next" :total="total"
                        :page-size="size" :current-page="page" @current-change="load" />
       </el-tab-pane>
 
-      <!-- ===== 日报 ===== -->
-      <el-tab-pane v-if="isAdmin" label="📊 日报" name="daily">
+      <!-- ===== 统计汇总（日报/月报合并，粒度切换） ===== -->
+      <el-tab-pane v-if="isAdmin" label="📊 统计汇总" name="stats">
         <div class="search-bar">
-          <el-date-picker v-model="dailyDate" type="date" value-format="YYYY-MM-DD" size="small"
+          <el-radio-group v-model="statMode" size="small" @change="loadStats">
+            <el-radio-button value="daily">日报</el-radio-button>
+            <el-radio-button value="monthly">月报</el-radio-button>
+          </el-radio-group>
+          <el-date-picker v-if="statMode === 'daily'" v-model="dailyDate" type="date" value-format="YYYY-MM-DD" size="small"
                           style="width: 160px" @change="loadDaily" />
-          <el-button type="primary" size="small" @click="loadDaily">查询</el-button>
+          <el-date-picker v-else v-model="monthVal" type="month" value-format="YYYY-MM" size="small"
+                          style="width: 140px" @change="loadMonthly" />
+          <el-button type="primary" size="small" @click="loadStats">查询</el-button>
         </div>
-        <el-table :data="daily" size="small" stripe max-height="460">
+        <el-table v-if="statMode === 'daily'" :data="daily" size="small" stripe max-height="460">
           <el-table-column prop="group_name" label="分组" width="100" />
           <el-table-column prop="employee_name" label="员工" width="110" />
           <el-table-column prop="report_count" label="报工次数" width="90" align="right"  sortable/>
+          <el-table-column label="图片" width="70" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="Number(row.image_count) > 0" type="info" size="small">📷 {{ row.image_count }}</el-tag>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="total_quantity" label="总数量" align="right" sortable>
             <template #default="{ row }">{{ fmt(row.total_quantity) }}</template>
           </el-table-column>
@@ -198,20 +244,16 @@
           </el-table-column>
           <template #empty><el-empty description="当日无报工" :image-size="60" /></template>
         </el-table>
-        <div class="sum-bar">合计：{{ fmt(dailySum) }}</div>
-      </el-tab-pane>
-
-      <!-- ===== 月报 ===== -->
-      <el-tab-pane v-if="isAdmin" label="🗓 月报" name="monthly">
-        <div class="search-bar">
-          <el-date-picker v-model="monthVal" type="month" value-format="YYYY-MM" size="small"
-                          style="width: 140px" @change="loadMonthly" />
-          <el-button type="primary" size="small" @click="loadMonthly">查询</el-button>
-        </div>
-        <el-table :data="monthly" size="small" stripe max-height="460">
+        <el-table v-else :data="monthly" size="small" stripe max-height="460">
           <el-table-column prop="employee_name" label="员工" width="110" />
           <el-table-column prop="group_name" label="分组" width="100" />
           <el-table-column prop="work_days" label="出勤天数" width="90" align="right"  sortable/>
+          <el-table-column label="图片" width="70" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="Number(row.image_count) > 0" type="info" size="small">📷 {{ row.image_count }}</el-tag>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="total_quantity" label="总数量" align="right" sortable>
             <template #default="{ row }">{{ fmt(row.total_quantity) }}</template>
           </el-table-column>
@@ -220,38 +262,53 @@
           </el-table-column>
           <template #empty><el-empty description="当月无报工" :image-size="60" /></template>
         </el-table>
-        <div class="sum-bar">合计：{{ fmt(monthlySum) }}</div>
+        <div class="sum-bar" v-if="statMode === 'daily'">合计：{{ fmt(dailySum) }}</div>
+        <div class="sum-bar" v-else>合计：{{ fmt(monthlySum) }}</div>
       </el-tab-pane>
     </el-tabs>
 
     <!-- 补录报工弹窗（仅管理员用） -->
-    <el-dialog v-model="createVisible" title="补录报工" width="520px">
-      <el-form label-width="80px" size="small">
-        <el-form-item label="员工" required>
+    <el-dialog v-model="createVisible" title="补录报工" width="720px">
+      <el-form ref="createFormRef" :rules="createRules" label-width="80px" size="small">
+        <el-form-item label="员工" prop="employeeId" required>
           <el-select v-model="form.employeeId" filterable placeholder="选择员工" style="width: 100%">
             <el-option v-for="e in employees" :key="e.id" :label="`${e.name}（${e.group_name || '未分组'}）`" :value="e.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="工序" required>
+        <el-form-item label="工序" prop="processId" required>
           <el-select v-model="form.processId" filterable placeholder="选择工序" style="width: 100%">
             <el-option v-for="p in processes" :key="p.id" :label="`${p.name}（${p.group_name || '未分组'}）`" :value="p.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="数量" required>
-          <el-input-number v-model="form.quantity" :min="1" :precision="2" :step="10" style="width: 180px" />
-        </el-form-item>
-        <el-form-item label="日期">
-          <el-date-picker v-model="form.reportDate" type="date" value-format="YYYY-MM-DD" style="width: 180px" />
-        </el-form-item>
         <el-row :gutter="8">
-          <el-col :span="12">
-            <el-form-item label="开始">
-              <el-time-picker v-model="form.startTime" value-format="HH:mm:ss" style="width: 100%" />
+          <el-col :span="isMobile ? 24 : 12">
+            <el-form-item label="数量" prop="quantity" required>
+              <el-input-number v-model="form.quantity" :min="1" :precision="2" :step="10" style="width: 100%" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="isMobile ? 24 : 12">
+            <el-form-item label="日期">
+              <el-date-picker v-model="form.reportDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="8">
+          <el-col :span="isMobile ? 24 : 12">
+            <el-form-item label="开始">
+              <div class="p-time-row">
+                <el-time-picker v-model="form.startTime" value-format="HH:mm:ss" placeholder="现在"
+                                style="flex: 1" size="small" />
+                <el-button link type="primary" size="small" @click="setNow('startTime')">现在</el-button>
+              </div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="isMobile ? 24 : 12">
             <el-form-item label="结束">
-              <el-time-picker v-model="form.endTime" value-format="HH:mm:ss" style="width: 100%" />
+              <div class="p-time-row">
+                <el-time-picker v-model="form.endTime" value-format="HH:mm:ss" placeholder="现在"
+                                style="flex: 1" size="small" />
+                <el-button link type="primary" size="small" @click="setNow('endTime')">现在</el-button>
+              </div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -304,14 +361,38 @@ watch(() => route.query.tab, (v) => {
 const employees = ref([])
 const processes = ref([])
 const groups = ref([])
-const form = reactive({ employeeId: null, processId: null, quantity: 1, reportDate: today(), startTime: nowTime(), endTime: null, remark: '', materialId: null, materialName: '' })
+const form = reactive({ employeeId: null, processId: null, quantity: 1, reportDate: today(), startTime: '', endTime: '', remark: '', materialId: null, materialName: '' })
 const active = ref(null)          // 进行中的报工记录
 const finishQty = ref(1)
-const finishTime = ref(nowTime()) // 结束时间（默认当前，可改）
+const finishTime = ref('') // 结束时间（空=用当前时间，finish 兜底）
 const elapsed = ref('00:00')
 const starting = ref(false)
 const finishing = ref(false)
 const myDone = ref([])
+
+const statMode = ref('daily')
+function loadStats() {
+  if (statMode.value === 'daily') loadDaily()
+  else loadMonthly()
+}
+
+// 补录弹窗校验
+const createFormRef = ref(null)
+const createRules = {
+  employeeId: [{ required: true, message: '请选择员工', trigger: 'change' }],
+  processId: [{ required: true, message: '请选择工序', trigger: 'change' }],
+  quantity: [{ required: true, message: '请填写数量', trigger: 'change' }],
+}
+
+// 时间选择器：直接绑定提交变量；"现在"按钮一键填入当前时间
+function setNow(key) {
+  if (key === 'finishTime') finishTime.value = nowTime()
+  else form[key] = nowTime()
+}
+
+const myDoneTotal = computed(() =>
+  myDone.value.reduce((s, r) => s + (Number(r.quantity) || 0), 0)
+)
 const matQuery = ref('')
 const matResults = ref([])
 const photoFiles = ref([])        // 待上传的报工照片（File[]）
@@ -373,6 +454,7 @@ async function loadMyDone() {
 async function start() {
   if (!form.employeeId) { ElMessage.warning('请选择姓名'); return }
   if (!form.processId) { ElMessage.warning('请选择工序'); return }
+  form.startTime = form.startTime || nowTime() // 用户确认过开始时间则保留；未确认则用当前时刻
   starting.value = true
   try {
     const fd = new FormData()
@@ -393,13 +475,14 @@ async function start() {
       start_time: form.startTime ? `${today()} ${form.startTime}` : nowStr(),
     }
     finishQty.value = 1
-    finishTime.value = nowTime()
+    // 结束时间不预填：空=结束时刻用当前时间（finish 兜底 nowStr）；用户改过才用改的
+    finishTime.value = ''
     // 清空表单，方便下一次
     form.processId = null
     form.remark = ''
     form.materialId = null
     form.materialName = ''
-    form.startTime = nowTime()
+    form.startTime = ''
     matQuery.value = ''
     photoFiles.value = []
     photoPreviews.value = []
@@ -532,6 +615,8 @@ const page = ref(1)
 const size = ref(20)
 const keyword = ref('')
 const loading = ref(false)
+const isMobile = ref(window.innerWidth <= 767)
+window.addEventListener('resize', () => { isMobile.value = window.innerWidth <= 767 })
 const saving = ref(false)
 const filterDate = ref(today())
 const filterGroup = ref(null)
@@ -597,17 +682,15 @@ async function loadMonthly() {
 }
 
 function openCreate() {
-  Object.assign(form, { employeeId: null, processId: null, quantity: 1, reportDate: today(), startTime: null, endTime: null, remark: '', materialId: null, materialName: '' })
+  Object.assign(form, { employeeId: null, processId: null, quantity: 1, reportDate: today(), startTime: '', endTime: '', remark: '', materialId: null, materialName: '' })
   createPhotos.value = []
   createPreviews.value = []
   createVisible.value = true
 }
 
 async function save() {
-  if (!form.employeeId || !form.processId || !form.quantity) {
-    ElMessage.warning('请选择员工、工序并填写数量')
-    return
-  }
+  const ok = await createFormRef.value.validate().catch(() => false)
+  if (!ok) return
   saving.value = true
   try {
     const fd = new FormData()
@@ -704,10 +787,10 @@ onUnmounted(stopTimer)
 </script>
 
 <style scoped>
-.search-bar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+
 .flex-spacer { flex: 1; }
-.pager { margin-top: 10px; justify-content: flex-end; }
-.sum-bar { margin-top: 10px; font-size: 13px; color: #606266; text-align: right; }
+
+
 .no-img { color: #c0c4cc; }
 .img-cell { position: relative; display: inline-block; }
 .img-badge {
@@ -728,8 +811,12 @@ onUnmounted(stopTimer)
 }
 .punch-done { flex: 1; min-width: 300px; }
 .done-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #303133; }
+.done-sum { font-size: 12px; font-weight: 400; color: #909399; margin-left: 8px; }
 .p-field { margin-bottom: 10px; }
+.p-time-row { display: flex; gap: 6px; align-items: center; }
+.p-time-row :deep(.el-date-editor) { min-width: 0; }
 .p-label { font-size: 12px; color: #606266; margin-bottom: 4px; }
+.req { color: #f56c6c; margin-right: 2px; }
 .p-optional { color: #c0c4cc; font-size: 11px; }
 .p-start { width: 100%; height: 40px; font-size: 15px; margin-top: 4px; }
 .active-info {
@@ -796,4 +883,17 @@ onUnmounted(stopTimer)
   .punch-card { width: 100%; }
   .punch-done { min-width: 100%; }
 }
+
+/* 手机卡片 */
+
+
+
+
+
+
+.m-row span { color: #909399; }
+.m-row b { color: #303133; font-weight: 500; }
+
+
+.m-thumb { width: 36px; height: 36px; border-radius: 4px; object-fit: cover; border: 1px solid #ebeef5; }
 </style>

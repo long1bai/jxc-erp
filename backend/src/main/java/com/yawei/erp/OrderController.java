@@ -55,7 +55,7 @@ public class OrderController {
         if (req.customerId() == null || req.items() == null || req.items().isEmpty()) {
             return ApiResponse.fail("请选择客户并添加明细");
         }
-        String coNo = seq.nextDaily("XSDD");
+        String coNo = seq.nextDaily(Constants.SEQ_SALES_ORDER);
         BigDecimal totalQty = BigDecimal.ZERO;
         BigDecimal totalAmt = BigDecimal.ZERO;
         for (var it : req.items()) {

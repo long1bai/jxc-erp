@@ -30,9 +30,9 @@
 
     <!-- ===== 第 2 步：核对 → 确认入库 ===== -->
     <template v-else>
-      <el-form label-width="70px" size="small">
+      <el-form ref="formRef" :rules="formRules" label-width="70px" size="small">
         <div class="recon-grid">
-          <el-form-item label="供应商" required>
+          <el-form-item label="供应商" required prop="supplierId">
             <el-select v-model="form.supplierId" filterable remote :remote-method="searchSup"
                        :loading="supLoading" placeholder="输入名称搜索选择" style="width: 100%">
               <el-option v-for="s in supOptions" :key="s.id" :label="s.name" :value="s.id" />
@@ -119,7 +119,12 @@ import { ElMessage } from 'element-plus'
 import { Plus, Delete, Loading, CircleCheck } from '@element-plus/icons-vue'
 import request from '../utils/request'
 
-const preview = ref('')
+const preview = ref(false)
+
+const formRules = {
+  supplierId: [{ required: true, message: '请选择供应商', trigger: 'change' }],
+}
+('')
 const imageBase64 = ref('')
 const recognizing = ref(false)
 const recognized = ref(false)
@@ -248,6 +253,8 @@ function addRow() {
 
 // ============ 确认入库 ============
 async function confirm() {
+  const ok = await formRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!form.supplierId) { ElMessage.warning('请选择供应商'); return }
   const valid = rows.value.filter(r => Number(r.quantity || 0) > 0)
   if (!valid.length) { ElMessage.warning('请至少填一条数量大于 0 的明细'); return }
@@ -303,7 +310,7 @@ function today() {
 .items-head { display: flex; justify-content: space-between; align-items: center; margin: 6px 0 8px; }
 .items-title { font-size: 13px; font-weight: 600; }
 .new-mat-hint { font-size: 11px; color: #67c23a; margin-top: 2px; }
-.sum-bar { margin-top: 8px; font-size: 13px; color: #606266; text-align: right; }
+
 .confirm-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
 .confirm-btns .el-button:last-child { height: 40px; font-size: 15px; padding: 0 24px; }
 </style>

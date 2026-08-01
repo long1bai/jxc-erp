@@ -30,7 +30,7 @@
         </template>
       </el-table-column>
       <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
-      <el-table-column label="操作" width="130">
+      <el-table-column label="操作" width="130" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
           <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
@@ -54,7 +54,7 @@
       <div v-if="!items.length" class="m-empty">暂无数据</div>
     </div>
 
-    <el-dialog v-model="visible" :title="editing ? '编辑账户' : '新增账户'" width="460px" destroy-on-close>
+    <el-dialog v-model="visible" :title="editing ? '编辑账户' : '新增账户'" width="480px" destroy-on-close>
       <el-form label-width="80px" size="small">
         <el-form-item label="账户名称" required>
           <el-input v-model="form.name" placeholder="如：现金、工商银行、微信" size="small" />

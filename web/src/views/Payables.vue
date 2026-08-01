@@ -85,7 +85,7 @@
               <template #default="{ row }">{{ fmt(row.amount) }}</template>
             </el-table-column>
             <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
-            <el-table-column label="操作" width="90">
+            <el-table-column label="操作" width="90" fixed="right">
               <template #default="{ row }">
                 <el-button link type="danger" size="small" @click="revoke(row)">撤销</el-button>
               </template>
@@ -140,18 +140,18 @@
     </el-tabs>
 
     <!-- 付款核销弹窗 -->
-    <el-dialog v-model="settleVisible" title="付款核销" width="560px">
+    <el-dialog v-model="settleVisible" title="付款核销" width="640px">
       <el-alert type="info" :closable="false" class="mb">
         单据「{{ selectedDoc?.doc_no }}」未付余额 <b>{{ fmt(selectedDoc?.balance) }}</b>，选择该供应商的付款单进行核销。
       </el-alert>
-      <el-form label-width="90px" size="small">
-        <el-form-item label="付款单" required>
+      <el-form ref="settleRef" :rules="settleRules" label-width="90px" size="small">
+        <el-form-item label="付款单" required prop="voucherId">
           <el-select v-model="settleForm.voucherId" filterable placeholder="选择付款单" style="width: 100%">
             <el-option v-for="v in candidateVouchers" :key="v.id" :value="v.id"
                        :label="`${v.pv_no}（${fmt(v.amount)}，剩余 ${fmt(v.amount - (v.settled_amount || 0))}）`" />
           </el-select>
         </el-form-item>
-        <el-form-item label="核销金额" required>
+        <el-form-item label="核销金额" required prop="amount">
           <el-input-number v-model="settleForm.amount" :min="0.01" :max="Number(selectedDoc?.balance || 0)"
                            :precision="2" :step="100" style="width: 200px" />
         </el-form-item>
@@ -172,6 +172,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { financeApi as api } from '../api/finance'
 
 const tab = ref('summary')
+
+const settleRules = {
+  voucherId: [{ required: true, message: '请选择单据', trigger: 'change' }],
+  amount: [{ required: true, message: '请填写金额', trigger: 'change' }],
+}
+('summary')
 const summary = ref([])
 const monthly = ref([])
 const docs = ref([])
@@ -242,9 +248,7 @@ async function openSettle() {
   settleForm.amount = Number(selectedDoc.value.balance) || 0
   settleForm.remark = ''
   try {
-    const res = await api.vouchers('payments', {
-      params: { keyword: selectedDoc.value.party_name, page: 1, size: 100 },
-    })
+    const res = await api.vouchers('payments', { keyword: selectedDoc.value.party_name, page: 1, size: 100 })
     candidateVouchers.value = (res.data.items || []).filter(
       (v) => Number(v.amount) - Number(v.settled_amount || 0) > 0
     )
@@ -253,6 +257,8 @@ async function openSettle() {
 }
 
 async function doSettle() {
+  const ok = await settleRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!settleForm.voucherId || !settleForm.amount) {
     ElMessage.warning('请选择付款单并填写金额')
     return
@@ -295,11 +301,11 @@ onMounted(() => { loadSummary(); loadMonthly(); loadDocs(1); loadAging() })
 </script>
 
 <style scoped>
-.search-bar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
-.pager { margin-top: 10px; justify-content: flex-end; }
-.sum-bar { margin-top: 10px; font-size: 13px; color: #606266; text-align: right; }
-.text-danger { color: #f56c6c; }
+
+
+
+
 .settle-box { margin-top: 10px; border: 1px solid #e4e7ed; border-radius: 4px; padding: 8px; }
 .settle-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #303133; }
-.mb { margin-bottom: 10px; }
+
 </style>

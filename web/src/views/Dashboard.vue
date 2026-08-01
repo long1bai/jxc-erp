@@ -1,5 +1,35 @@
 <template>
   <div class="dash-wrap">
+    <!-- ===== 功能导航（模块分块，点击直达）===== -->
+    <el-card shadow="never" class="mb-2" v-if="navGroups.length || navSingles.length">
+      <template #header>
+        <div class="card-head">
+          <span class="head-title"><el-icon><Grid /></el-icon> 功能导航</span>
+          <span class="head-link">点击功能直接进入</span>
+        </div>
+      </template>
+      <div class="nav-blocks">
+        <div v-for="g in navGroups" :key="g.title" class="nav-block">
+          <div class="nav-block-title"><el-icon><component :is="g.icon" /></el-icon> {{ g.title }}</div>
+          <div class="nav-items">
+            <div v-for="it in g.items" :key="it.path" class="nav-item" @click="$router.push(it.path)">
+              <el-icon><component :is="it.icon || 'Document'" /></el-icon>
+              <span>{{ it.title }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-if="navSingles.length" class="nav-block nav-singles">
+          <div class="nav-block-title"><el-icon><Link /></el-icon> 快捷入口</div>
+          <div class="nav-items">
+            <div v-for="it in navSingles" :key="it.path" class="nav-item" @click="$router.push(it.path)">
+              <el-icon><component :is="it.icon || 'Document'" /></el-icon>
+              <span>{{ it.title }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-card>
+
     <!-- 统计卡片：2行×3列 -->
     <el-row :gutter="8" class="mb-2">
       <el-col :span="8">
@@ -197,6 +227,20 @@ const data = ref({
   recent_deliveries: [],
 })
 
+// ===== 功能导航（菜单数据驱动，按角色自动过滤）=====
+const navGroups = ref([])
+const navSingles = ref([]) // 无分组的顶层项（AI/拍照/指南等）
+onMounted(async () => {
+  try {
+    const res = await request.get('/menus')
+    const menus = res.data.menus || []
+    navGroups.value = menus
+      .filter((m) => (m.children || []).length)
+      .map((g) => ({ title: g.title, icon: g.icon, items: g.children }))
+    navSingles.value = menus.filter((m) => !(m.children || []).length)
+  } catch { /* 忽略 */ }
+})
+
 function fmt(v) {
   return Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })
 }
@@ -223,9 +267,47 @@ onMounted(async () => {
 .row-line { display: flex; justify-content: space-between; font-size: 11px; padding: 1px 2px; border-bottom: 1px solid #f5f5f5; }
 .line-name { max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .line-amt { font-weight: bold; }
-.text-danger { color: #f56c6c; }
+
 .text-success { color: #67c23a; }
 .text-muted { color: #909399; font-size: 11px; padding: 4px 2px; }
+
+/* ===== 功能导航（象过河风格：模块分块）===== */
+.nav-blocks { display: flex; flex-wrap: wrap; gap: 10px; }
+.nav-block {
+  flex: 1 1 220px;
+  max-width: 340px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.nav-block-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.nav-items { display: flex; flex-wrap: wrap; gap: 6px; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #409eff;
+  background: #fff;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.nav-item:hover { color: #fff; background: #409eff; border-color: #409eff; }
+.nav-singles .nav-block-title { color: #67c23a; }
+@media (max-width: 767px) {
+  .nav-block { flex: 1 1 100%; max-width: none; }
+}
 @media (max-width: 767px) {
   .dash-stat { padding: 10px; }
   .dash-stat .num { font-size: 17px; }

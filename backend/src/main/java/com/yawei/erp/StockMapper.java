@@ -15,8 +15,8 @@ public interface StockMapper {
     /** 当前库存列表（搜索/分页/按仓库筛选，低库存标记字段 min_stock） */
     @Select("<script>SELECT m.id, m.code, m.name, m.spec, m.unit, m.category, " +
             "m.purchase_price, m.sale_price, m.min_stock, " +
-            "COALESCE(SUM(CASE WHEN sm.move_type='in' THEN sm.quantity " +
-            "WHEN sm.move_type='out' THEN -sm.quantity WHEN sm.move_type='adjust' THEN sm.quantity ELSE 0 END),0) AS stock " +
+            "COALESCE(SUM(CASE WHEN sm.move_type='" + Constants.MOVE_IN + "' THEN sm.quantity " +
+            "WHEN sm.move_type='" + Constants.MOVE_OUT + "' THEN -sm.quantity WHEN sm.move_type='" + Constants.MOVE_ADJUST + "' THEN sm.quantity ELSE 0 END),0) AS stock " +
             "FROM materials m LEFT JOIN stock_movements sm ON m.id = sm.material_id AND sm.deleted = 0 " +
             "<where>m.deleted = 0 " +
             "<if test='whId != null'> AND sm.warehouse_id = #{whId}</if> " +

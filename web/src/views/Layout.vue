@@ -1,26 +1,47 @@
 <template>
   <el-container class="layout">
-    <!-- 侧栏 -->
-    <el-aside width="200px" class="aside" :class="{ 'mobile-open': mobileMenuOpen }">
-      <div class="brand">📦 jxc进销存 <span class="ver">v2.0</span></div>
-      <el-menu :default-active="activeMenu" router class="menu">
-        <template v-for="item in menus" :key="item.path">
-          <el-sub-menu v-if="item.children && item.children.length" :index="item.path">
-            <template #title>
-              <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
-              <span>{{ item.title }}</span>
+    <!-- 模块栏 + 主菜单 -->
+    <el-aside width="256px" class="aside" :class="{ 'mobile-open': mobileMenuOpen }">
+      <div class="aside-flex">
+        <!-- 左侧窄模块栏（象过河风格：点模块，菜单跟着过滤） -->
+        <div class="mod-bar">
+          <div class="mod-brand" title="首页" @click="goHome">
+            <el-icon size="20"><Odometer /></el-icon>
+          </div>
+          <div v-for="g in modGroups" :key="g.path" class="mod-item"
+               :class="{ active: selectedModule === g.path }"
+               :title="g.title" @click="selectModule(g.path)">
+            <el-icon size="19"><component :is="g.icon" /></el-icon>
+            <span class="mod-label">{{ g.title }}</span>
+          </div>
+        </div>
+        <!-- 主菜单（按选中模块过滤） -->
+        <div class="menu-area">
+          <div class="brand">📦 jxc进销存 <span class="ver">v2.0</span></div>
+          <div v-if="selectedModule" class="mod-title">
+            <el-icon v-if="currentMod?.icon" size="14"><component :is="currentMod.icon" /></el-icon>
+            {{ currentMod?.title }}
+          </div>
+          <el-menu ref="menuRef" :default-active="activeMenu" router class="menu" @scroll="saveMenuScroll">
+            <template v-for="item in filteredMenus" :key="item.path">
+              <el-sub-menu v-if="item.children && item.children.length" :index="item.path">
+                <template #title>
+                  <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
+                  <span>{{ item.title }}</span>
+                </template>
+                <el-menu-item v-for="c in item.children" :key="c.path" :index="c.path" @click="go(c.path)">
+                  <el-icon v-if="c.icon"><component :is="c.icon" /></el-icon>
+                  <span>{{ c.title }}</span>
+                </el-menu-item>
+              </el-sub-menu>
+              <el-menu-item v-else :index="item.path" @click="go(item.path)">
+                <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
+                <span>{{ item.title }}</span>
+              </el-menu-item>
             </template>
-            <el-menu-item v-for="c in item.children" :key="c.path" :index="c.path">
-              <el-icon v-if="c.icon"><component :is="c.icon" /></el-icon>
-              <span>{{ c.title }}</span>
-            </el-menu-item>
-          </el-sub-menu>
-          <el-menu-item v-else :index="item.path">
-            <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
-            <span>{{ item.title }}</span>
-          </el-menu-item>
-        </template>
-      </el-menu>
+          </el-menu>
+        </div>
+      </div>
     </el-aside>
 
     <!-- 手机端侧栏遮罩 -->
@@ -35,6 +56,13 @@
           </el-button>
           <div class="header-title">jxc进销存系统</div>
         </div>
+        <!-- 顶部快捷功能条（象过河功能导航条） -->
+        <div class="quick-bar" v-if="!isMobile && quickItems.length">
+          <div v-for="q in quickItems" :key="q.path" class="quick-item" @click="router.push(q.path)">
+            <el-icon size="15"><component :is="q.icon" /></el-icon>
+            <span>{{ q.title }}</span>
+          </div>
+        </div>
         <div class="header-right">
           <span class="user">
             <el-icon><UserFilled /></el-icon> {{ user.displayName || user.username }}
@@ -45,10 +73,24 @@
         </div>
       </el-header>
 
-      <!-- 内容 -->
-      <el-main class="main">
-        <router-view />
-      </el-main>
+      <div class="main-flex">
+        <!-- 内容 -->
+        <el-main class="main">
+          <router-view />
+        </el-main>
+        <!-- 右侧查询面板（象过河相关查询统计） -->
+        <el-aside v-if="!isMobile && reportGroups.length" width="212px" class="query-panel">
+          <div class="qp-title">相关查询统计</div>
+          <div v-for="g in reportGroups" :key="g.title" class="qp-group">
+            <div class="qp-group-title">{{ g.title }}</div>
+            <div v-for="it in g.items" :key="it.path" class="qp-item" @click="router.push(it.path)">
+              <el-icon size="14"><component :is="it.icon || 'Document'" /></el-icon>
+              <span>{{ it.title }}</span>
+            </div>
+          </div>
+          <div v-if="!reportGroups.length" class="qp-empty">选中左侧模块查看相关功能</div>
+        </el-aside>
+      </div>
 
       <!-- 手机端底部导航 -->
       <nav class="bottom-nav" v-if="isMobile">
@@ -73,12 +115,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '../store/user'
 import request from '../utils/request'
-import { Menu, Camera, Box, QuestionFilled, DataAnalysis } from '@element-plus/icons-vue'
+import { Menu, Camera, Box, QuestionFilled, Odometer } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -111,6 +153,7 @@ onMounted(async () => {
   try {
     const mr = await request.get('/menus')
     menus.value = mr.data.menus || []
+    syncModule() // 菜单就绪后同步当前模块选中
   } catch (e) {
     // 菜单加载失败不阻塞页面（路由守卫仍按角色拦截）
   }
@@ -123,6 +166,80 @@ watch(() => route.path, () => { mobileMenuOpen.value = false })
 function isActive(path) {
   return route.path.startsWith(path)
 }
+
+// 显式跳转（不依赖 el-menu router 模式，保证点击一定响应）
+function go(path) {
+  if (route.path === path) return
+  router.push(path)
+}
+// 首页图标：已在仪表盘则刷新（重新加载数据），否则跳转
+function goHome() {
+  if (route.path === '/dashboard') {
+    window.location.reload()
+  } else {
+    router.push('/dashboard')
+  }
+}
+
+// ===== 模块栏（象过河：左侧窄栏点模块，主菜单过滤）=====
+const modGroups = computed(() => menus.value.filter((m) => (m.children || []).length))
+const singles = computed(() => menus.value.filter((m) => !(m.children || []).length))
+const selectedModule = ref('')
+const currentMod = computed(() => modGroups.value.find((g) => g.path === selectedModule.value))
+function selectModule(path) {
+  selectedModule.value = selectedModule.value === path ? '' : path // 再点取消过滤
+}
+const filteredMenus = computed(() => {
+  if (!selectedModule.value) return menus.value
+  const sel = modGroups.value.find((g) => g.path === selectedModule.value)
+  return [sel, ...singles.value].filter(Boolean)
+})
+// 菜单滚动位置保持：菜单项点击 → 模块过滤重渲染会重置滚动，保存并恢复
+const menuRef = ref(null)
+let savedMenuScroll = 0
+function saveMenuScroll() {
+  savedMenuScroll = menuRef.value?.$el?.scrollTop ?? 0
+}
+watch(filteredMenus, () => {
+  nextTick(() => {
+    const el = menuRef.value?.$el
+    if (el) el.scrollTop = savedMenuScroll
+  })
+})
+// 路由变化 → 自动关联所属模块（菜单跟当前页走；无分组页如仪表盘/拍照显示全量）
+function syncModule() {
+  const clean = route.path.split('?')[0]
+  for (const g of modGroups.value) {
+    const hit = (g.children || []).some((c) => clean.startsWith(c.path.split('?')[0]))
+    if (hit) { selectedModule.value = g.path; return }
+  }
+  selectedModule.value = ''
+}
+watch(() => route.path, syncModule, { immediate: true })
+
+// ===== 顶部快捷功能条（常用功能一键直达，按角色自动过滤）=====
+const QUICK_PATHS = ['/orders', '/purchases', '/stock/inventory',
+  '/finance/vouchers?tab=receipts', '/finance/vouchers?tab=payments', '/work/reports']
+const quickItems = computed(() => {
+  const all = []
+  const walk = (items) => { for (const m of items) { all.push(m); if (m.children) walk(m.children) } }
+  walk(menus.value)
+  return QUICK_PATHS.map((p) => all.find((m) => m.path === p)).filter(Boolean)
+})
+
+// ===== 右侧查询面板（当前模块的 功能操作 + 查询统计）=====
+const reportGroups = computed(() => {
+  if (!selectedModule.value) return []
+  const g = modGroups.value.find((x) => x.path === selectedModule.value)
+  if (!g) return []
+  const kids = g.children || []
+  const query = kids.filter((k) => /报表|统计|查询|分析|盘点|流水|对账/.test(k.title))
+  const other = kids.filter((k) => !/报表|统计|查询|分析|盘点|流水|对账/.test(k.title))
+  const groups = []
+  if (other.length) groups.push({ title: '功能操作', items: other })
+  if (query.length) groups.push({ title: '查询统计', items: query })
+  return groups
+})
 
 async function logout() {
   try {
@@ -142,30 +259,64 @@ async function logout() {
 }
 .aside {
   background: #001529;
-  display: flex;
-  flex-direction: column;
   transition: transform .25s ease;
 }
-/* 手机端：侧栏变抽屉 */
-@media (max-width: 767px) {
-  .aside {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 1060;
-    transform: translateX(-100%);
-    width: 220px !important;
-  }
-  .aside.mobile-open {
-    transform: translateX(0);
-  }
+.aside-flex {
+  display: flex;
+  height: 100%;
 }
-.menu-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, .35);
-  z-index: 1055;
+/* 左侧窄模块栏 */
+.mod-bar {
+  width: 56px;
+  background: #000c17;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.mod-brand {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, .8);
+  cursor: pointer;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.mod-brand:hover { background: rgba(255, 255, 255, .1); }
+.mod-item {
+  width: 52px;
+  padding: 7px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: rgba(255, 255, 255, .55);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all .15s;
+}
+.mod-item .mod-label {
+  font-size: 10px;
+  transform: scale(.9);
+  white-space: nowrap;
+}
+.mod-item:hover { color: #fff; background: rgba(255, 255, 255, .08); }
+.mod-item.active {
+  color: #fff;
+  background: rgba(24, 144, 255, .35);
+  box-shadow: inset 0 0 0 1px rgba(24, 144, 255, .4);
+}
+/* 主菜单区 */
+.menu-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 .brand {
   color: #fff;
@@ -182,12 +333,22 @@ async function logout() {
 }
 .menu {
   flex: 1;
+  overflow-y: auto;
   border-right: none;
   background: transparent;
   --el-menu-text-color: rgba(255, 255, 255, .65);
   --el-menu-hover-bg-color: rgba(255, 255, 255, .06);
   --el-menu-active-color: #fff;
   --el-menu-bg-color: transparent;
+}
+.mod-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, .85);
+  padding: 10px 14px 4px;
+  font-weight: 600;
 }
 .menu :deep(.el-menu-item),
 .menu :deep(.el-sub-menu__title) {
@@ -198,92 +359,169 @@ async function logout() {
   border-right: 3px solid #1890ff;
 }
 .menu :deep(.el-sub-menu .el-menu-item) {
-  background: rgba(0, 0, 0, .2);
-  min-width: 0;
+  min-width: auto;
+}
+/* 手机端：侧栏变抽屉 */
+@media (max-width: 767px) {
+  .aside {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1060;
+    transform: translateX(-100%);
+    width: 240px !important;
+  }
+  .aside.mobile-open {
+    transform: translateX(0);
+  }
+}
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .35);
+  z-index: 1055;
 }
 .header {
-  background: #fff;
-  border-bottom: 1px solid #e8e8e8;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
+  padding: 0 14px;
+  background: #fff;
+  border-bottom: 1px solid #ebeef5;
   height: 52px;
 }
 .header-left {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-.hamburger {
-  margin-right: 2px;
-  color: #303133;
+  flex-shrink: 0;
 }
 .header-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #303133;
+  white-space: nowrap;
+}
+/* 顶部快捷功能条 */
+.quick-bar {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  overflow-x: auto;
+  padding: 0 8px;
+}
+.quick-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: #606266;
+  background: #f5f7fa;
+  border: 1px solid #e4e7ed;
+  border-radius: 14px;
+  padding: 3px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+}
+.quick-item:hover {
+  color: #fff;
+  background: #409eff;
+  border-color: #409eff;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 .user {
-  font-size: 13px;
+  font-size: 12px;
   color: #606266;
-  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+/* 主内容 + 右侧查询面板 */
+.main-flex {
+  flex: 1;
+  display: flex;
+  min-height: 0;
 }
 .main {
-  padding: 14px;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: #f5f7fa;
+  padding: 12px;
+}
+.query-panel {
+  background: #fff;
+  border-left: 1px solid #ebeef5;
+  padding: 12px 10px;
   overflow-y: auto;
 }
-/* 手机端底部导航 */
-.bottom-nav {
+.qp-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+}
+.qp-group { margin-bottom: 10px; }
+.qp-group-title {
+  font-size: 11px;
+  color: #909399;
+  margin-bottom: 4px;
+  padding-left: 2px;
+}
+.qp-item {
   display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #409eff;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.qp-item:hover {
+  background: #ecf5ff;
+}
+.qp-empty {
+  font-size: 12px;
+  color: #c0c4cc;
+  text-align: center;
+  padding: 20px 0;
+}
+/* 手机底部导航 */
+.bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 56px;
   background: #fff;
-  border-top: 1px solid #e8e8e8;
-  z-index: 1050;
-  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid #ebeef5;
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 0 8px;
+  z-index: 1000;
 }
-.bottom-nav .bn-item {
-  flex: 1;
+.bn-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  color: #999;
-  text-decoration: none;
-  font-size: 10px;
   gap: 2px;
-  min-height: 44px;
+  font-size: 10px;
+  color: #909399;
+  text-decoration: none;
 }
-.bottom-nav .bn-item.active {
-  color: #1890ff;
-}
-.bottom-nav .bn-item:active {
-  background: #f6f8fa;
-}
+.bn-item.active { color: #409eff; }
 @media (max-width: 767px) {
-  .aside {
-    display: flex;
-  }
-  .aside.mobile-open {
-    display: flex;
-  }
-  .header-title {
-    font-size: 13px;
-  }
-  .main {
-    padding: 10px;
-    padding-bottom: 66px;
-  }
-}
-@media (min-width: 768px) {
-  .bottom-nav {
-    display: none;
-  }
-  .menu-overlay {
-    display: none;
-  }
+  .main { padding: 8px; padding-bottom: 64px; }
 }
 </style>

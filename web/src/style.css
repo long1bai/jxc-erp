@@ -7,6 +7,19 @@ html, body, #app {
   font-size: 14px;
 }
 
+/* ===== 弹窗垂直居中（桌面端）=====
+   el-dialog 默认 margin-top 15vh 挂在顶部，内容短时悬在上方不好看——改为 overlay 内垂直居中 */
+@media (min-width: 768px) {
+  .el-overlay-dialog {
+    display: flex;
+    padding: 16px;
+  }
+  /* margin:auto = 水平垂直居中；弹窗超高时顶部不被裁（overlay 可滚动） */
+  .el-dialog {
+    margin: auto !important;
+  }
+}
+
 /* ===== 手机端弹窗适配（全局，所有 el-dialog 生效）=====
    核心：弹窗全屏化 + 表单区内部滚动 + 保存按钮固定底部（不用滑到底才能点保存） */
 @media (max-width: 767px) {
@@ -58,3 +71,41 @@ html, body, #app {
   .m-di-line b { color: #303133; font-weight: 600; }
 }
 
+
+/* ===== 公共样式（从各页面抽离统一，2026-08-01）===== */
+/* 筛选栏（search-bar 统一：wrap 防溢出 + 垂直居中） */
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+/* 分页条 */
+.pager {
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+/* 下边距工具类 */
+.mb { margin-bottom: 10px; }
+/* 合计条 */
+.sum-bar {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #606266;
+  text-align: right;
+}
+/* 危险/警示文字 */
+.text-danger { color: #f56c6c; }
+/* 手机端卡片列表（18 页统一） */
+.m-cards { display: flex; flex-direction: column; gap: 10px; }
+.m-card {
+  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
+  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.m-name { font-size: 15px; font-weight: 600; color: #303133; }
+.m-card-body { display: flex; flex-direction: column; gap: 4px; }
+.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
+.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }

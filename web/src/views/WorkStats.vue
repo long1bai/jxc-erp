@@ -10,12 +10,11 @@
       <!-- 统计报告 -->
       <el-tab-pane label="📊 统计报告" name="stats">
         <div class="search-bar">
-          <el-date-picker v-model="range" type="daterange" value-format="YYYY-MM-DD" size="small"
-                          range-separator="~" start-placeholder="开始" end-placeholder="结束" style="width: 250px" />
+          <FilterBar v-model="range" @query="loadStats">
           <el-select v-model="filterGroup" placeholder="分组" clearable size="small" style="width: 120px">
             <el-option v-for="g in groups" :key="g.id" :label="g.name" :value="g.id" />
           </el-select>
-          <el-button type="primary" size="small" @click="loadStats">查询</el-button>
+          </FilterBar>
         </div>
         <el-table :data="stats" size="small" stripe highlight-current-row @current-change="showTrend" max-height="420" v-if="!isMobile">
           <el-table-column prop="employee_name" label="员工" min-width="100" />
@@ -107,6 +106,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
+import FilterBar from '../components/FilterBar.vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
@@ -191,7 +191,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.search-bar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+
 .trend { font-size: 13px; }
 .trend.up { color: #67c23a; }
 .trend.down { color: #f56c6c; }
@@ -205,17 +205,14 @@ onMounted(async () => {
 .wage-sum { font-size: 13px; color: #606266; margin-left: 8px; }
 
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
-.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+
+
 </style>

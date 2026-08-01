@@ -77,19 +77,19 @@
     </div>
 
     <!-- 新增/编辑弹窗（destroy-on-close：每次打开重新渲染，杜绝表单残留） -->
-    <el-dialog v-model="editVisible" :title="form.id ? '编辑用户' : '新增用户'" width="440px" destroy-on-close>
-      <el-form label-width="80px" size="small">
-        <el-form-item label="用户名" required>
+    <el-dialog v-model="editVisible" :title="form.id ? '编辑用户' : '新增用户'" width="480px" destroy-on-close>
+      <el-form ref="formRef" :rules="formRules" label-width="80px" size="small">
+        <el-form-item label="用户名" required prop="username">
           <el-input v-model="form.username" :disabled="!!form.id" />
         </el-form-item>
-        <el-form-item label="姓名" required>
+        <el-form-item label="姓名" required prop="displayName">
           <el-input v-model="form.displayName" placeholder="与报工员工名单同名将自动关联" />
         </el-form-item>
         <el-form-item label="关联员工">
           <el-input :model-value="form.workEmployeeName || (form.id ? '（未匹配到同名报工员工）' : '（员工账号将自动创建报工员工身份）')" disabled size="small" />
           <div class="link-hint">员工账号：按姓名自动关联报工员工；名单无同名则自动创建。关联后登录打卡页自动带出本人；员工分组/电话在 报工设置-员工 维护</div>
         </el-form-item>
-        <el-form-item label="密码" :required="!form.id">
+        <el-form-item label="密码" :required="!form.id" prop="password">
           <el-input v-model="form.password" type="password" show-password
                     :placeholder="form.id ? '留空则不修改' : '至少 4 位'" />
         </el-form-item>
@@ -120,6 +120,11 @@ import PageHeader from '../components/PageHeader.vue'
 const items = ref([])
 const loading = ref(false)
 const isMobile = ref(window.innerWidth <= 767)
+const formRef = ref(null)
+const formRules = {
+  username: [{ required: true, message: '请填写用户名', trigger: 'change' }],
+  displayName: [{ required: true, message: '请填写姓名', trigger: 'change' }],
+}
 window.addEventListener('resize', () => { isMobile.value = window.innerWidth <= 767 })
 const saving = ref(false)
 const editVisible = ref(false)
@@ -179,6 +184,8 @@ function openEdit(row) {
 }
 
 async function save() {
+  const ok = await formRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!form.username.trim()) {
     ElMessage.warning('请输入用户名')
     return
@@ -241,17 +248,14 @@ onMounted(() => load())
 .link-hint { font-size: 11px; color: #909399; line-height: 1.5; margin-top: 2px; }
 
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
-.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+
+
 </style>

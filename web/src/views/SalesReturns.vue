@@ -26,7 +26,7 @@
         <template #default="{ row }">{{ fmt(row.total_amount) }}</template>
       </el-table-column>
       <el-table-column prop="remark" label="备注" min-width="100" show-overflow-tooltip />
-      <el-table-column label="操作" width="140">
+      <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" size="small" @click="view(row)">明细</el-button>
           <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
@@ -56,9 +56,9 @@
                    :page-size="size" :current-page="page" @current-change="load" />
 
     <!-- 新建弹窗 -->
-    <el-dialog v-model="createVisible" title="新建退货单" width="760px" destroy-on-close>
-      <el-form label-width="80px" size="small">
-        <el-form-item label="客户" required>
+    <el-dialog v-model="createVisible" title="新建退货单" width="820px" destroy-on-close>
+      <el-form ref="createFormRef" :rules="createRules" label-width="80px" size="small">
+        <el-form-item label="客户" prop="customerId" required>
           <el-select v-model="form.customerId" filterable placeholder="选择客户" style="width: 100%">
             <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
@@ -140,6 +140,10 @@ const size = ref(20)
 const keyword = ref('')
 const loading = ref(false)
 const isMobile = ref(window.innerWidth <= 767)
+const createFormRef = ref(null)
+const createRules = {
+  customerId: [{ required: true, message: '请选择客户', trigger: 'change' }],
+}
 window.addEventListener('resize', () => { isMobile.value = window.innerWidth <= 767 })
 const saving = ref(false)
 const customers = ref([])
@@ -181,7 +185,8 @@ function addItem() {
 }
 
 async function save() {
-  if (!form.customerId) return alert('请选择客户')
+  const ok = await createFormRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!form.items.length || form.items.some(i => !i.materialId || !i.quantity)) return alert('请填写退货明细')
   saving.value = true
   try {
@@ -219,21 +224,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.search-bar { display: flex; gap: 8px; margin-bottom: 10px; }
-.pager { margin-top: 10px; justify-content: flex-end; }
+
+
 
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
-.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+
+
 </style>

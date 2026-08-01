@@ -42,7 +42,7 @@ public interface DashboardMapper {
     /** 库存预警数（当前库存 <= 最低库存；与原版 v_stock_alerts 一致）——GROUP BY 单查询，避免 N+1 子查询 */
     @Select("SELECT COUNT(*) FROM (" +
             "SELECT m.id, m.min_stock, " +
-            "COALESCE(SUM(CASE WHEN sm.move_type='in' THEN sm.quantity WHEN sm.move_type='out' THEN -sm.quantity ELSE 0 END),0) AS stock " +
+            "COALESCE(SUM(CASE WHEN sm.move_type='" + Constants.MOVE_IN + "' THEN sm.quantity WHEN sm.move_type='" + Constants.MOVE_OUT + "' THEN -sm.quantity ELSE 0 END),0) AS stock " +
             "FROM materials m LEFT JOIN stock_movements sm ON sm.material_id = m.id " +
             "GROUP BY m.id, m.min_stock " +
             "HAVING stock <= m.min_stock) t")
@@ -50,7 +50,7 @@ public interface DashboardMapper {
 
     /** 库存预警列表（前8） */
     @Select("SELECT m.id, m.code, m.name, m.min_stock, " +
-            "COALESCE(SUM(CASE WHEN sm.move_type='in' THEN sm.quantity WHEN sm.move_type='out' THEN -sm.quantity ELSE 0 END),0) AS stock " +
+            "COALESCE(SUM(CASE WHEN sm.move_type='" + Constants.MOVE_IN + "' THEN sm.quantity WHEN sm.move_type='" + Constants.MOVE_OUT + "' THEN -sm.quantity ELSE 0 END),0) AS stock " +
             "FROM materials m LEFT JOIN stock_movements sm ON sm.material_id = m.id " +
             "GROUP BY m.id, m.code, m.name, m.min_stock " +
             "HAVING stock <= m.min_stock " +

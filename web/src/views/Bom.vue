@@ -47,9 +47,9 @@
                    :page-size="size" :current-page="page" @current-change="load" />
 
     <!-- 编辑 BOM 弹窗 -->
-    <el-dialog v-model="editVisible" :title="editForm.productId ? '编辑 BOM' : '新建 BOM'" width="720px">
-      <el-form label-width="80px" size="small">
-        <el-form-item label="成品" required>
+    <el-dialog v-model="editVisible" :title="editForm.productId ? '编辑 BOM' : '新建 BOM'" width="820px">
+      <el-form ref="formRef" :rules="formRules" label-width="80px" size="small">
+        <el-form-item label="成品" required prop="productId">
           <el-select v-model="editForm.productId" filterable placeholder="选择成品物料" style="width: 100%"
                      :disabled="!!editForm.productId" @change="loadDetail">
             <el-option v-for="m in productOptions" :key="m.id" :label="`${m.code} ${m.name}`" :value="m.id" />
@@ -102,6 +102,10 @@ const size = ref(20)
 const keyword = ref('')
 const loading = ref(false)
 const isMobile = ref(window.innerWidth <= 767)
+const formRef = ref(null)
+const formRules = {
+  productId: [{ required: true, message: '请填写成品', trigger: 'change' }],
+}
 window.addEventListener('resize', () => { isMobile.value = window.innerWidth <= 767 })
 const saving = ref(false)
 const editVisible = ref(false)
@@ -153,6 +157,8 @@ function addRow() {
 }
 
 async function save() {
+  const ok = await formRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!editForm.productId) {
     ElMessage.warning('请选择成品物料')
     return
@@ -193,22 +199,19 @@ onMounted(() => { load(1); loadOptions() })
 
 <style scoped>
 .hint { font-size: 12px; color: #909399; }
-.search-bar { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
-.pager { margin-top: 10px; justify-content: flex-end; }
+
+
 .row-add { text-align: center; }
 
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
-.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+
+
 </style>

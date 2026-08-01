@@ -85,11 +85,11 @@
       :current-page="page"
       :page-sizes="[20, 50, 100]"
       @current-change="load"
-      @size-change="(s) => { size = s; load(1) }"
+      @size-change="onSizeChange"
     />
 
     <!-- 库存流水弹窗 -->
-    <el-dialog v-model="mvVisible" :title="'库存流水 — ' + (curMaterial?.name || '')" width="720px">
+    <el-dialog v-model="mvVisible" :title="'库存流水 — ' + (curMaterial?.name || '')" width="820px">
       <el-table :data="movements" size="small" max-height="420">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="move_date" label="日期" width="110"  sortable/>
@@ -146,13 +146,18 @@ function fmt(v) {
   return v === null || v === undefined ? '0' : Number(v).toLocaleString()
 }
 
+function onSizeChange(s) {
+  size.value = s
+  load(1)
+}
+
 async function load(p) {
   if (p) page.value = p
   loading.value = true
   try {
     const params = { keyword: keyword.value, page: page.value, size: size.value }
     if (warehouseId.value) params.warehouseId = warehouseId.value
-    const res = await api.inventory({ params })
+    const res = await api.inventory(params)
     items.value = res.data.items
     total.value = Number(res.data.total)
   } catch (e) {
@@ -164,7 +169,7 @@ async function load(p) {
 
 async function loadWarehouses() {
   try {
-    const res = await api.warehouses({ params: { size: 100 } })
+    const res = await api.warehouses({ size: 100 })
     warehouses.value = res.data.items || []
   } catch { /* 忽略 */ }
 }
@@ -191,32 +196,20 @@ onMounted(() => { load(1); loadWarehouses() })
 </script>
 
 <style scoped>
-.search-bar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.pager {
-  margin-top: 12px;
-  justify-content: flex-end;
-}
+
+
 .low-stock {
   color: #f56c6c;
   font-weight: 700;
 }
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
+
 </style>

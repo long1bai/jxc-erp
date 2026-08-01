@@ -24,7 +24,7 @@
       <el-table-column prop="total_items" label="产品数" width="80" align="right" sortable />
       <el-table-column prop="total_quantity" label="入库数量" width="110" align="right" sortable />
       <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
-      <el-table-column label="操作" width="130">
+      <el-table-column label="操作" width="130" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" size="small" @click="view(row)">明细</el-button>
           <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
@@ -52,7 +52,7 @@
     <el-pagination class="pager" background layout="total, prev, pager, next" :total="total"
                    :page-size="size" :current-page="page" @current-change="load" />
 
-    <el-dialog v-model="createVisible" title="新建成品入库单" width="720px" destroy-on-close>
+    <el-dialog v-model="createVisible" title="新建成品入库单" width="820px" destroy-on-close>
       <el-form label-width="80px" size="small">
         <el-form-item label="日期">
           <el-date-picker v-model="form.inDate" type="date" value-format="YYYY-MM-DD" style="width: 160px" />
@@ -187,21 +187,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.search-bar { display: flex; gap: 8px; margin-bottom: 10px; }
-.pager { margin-top: 10px; justify-content: flex-end; }
+
+
 
 /* 手机卡片 */
-.m-cards { display: flex; flex-direction: column; gap: 10px; }
-.m-card {
-  background: #fff; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-.m-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.m-name { font-size: 15px; font-weight: 600; color: #303133; }
-.m-card-body { display: flex; flex-direction: column; gap: 4px; }
-.m-row { display: flex; justify-content: space-between; font-size: 13px; }
+
+
+
+
+
+
 .m-row span { color: #909399; }
 .m-row b { color: #303133; font-weight: 500; }
-.m-empty { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; }
-.m-actions { display: flex; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+
+
 </style>

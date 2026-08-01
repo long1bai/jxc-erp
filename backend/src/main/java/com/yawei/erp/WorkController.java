@@ -17,6 +17,12 @@ import java.util.Map;
 @RequestMapping("/api/work")
 public class WorkController {
 
+    @org.springframework.beans.factory.annotation.Value("${app.upload-dir}")
+    private String uploadDir;
+
+    @org.springframework.beans.factory.annotation.Value("${app.legacy-web-public}")
+    private String legacyWebPublic;
+
     private final WorkMapper mapper;
     private final SysMapper sys;
     private final TradeMapper trade;
@@ -361,12 +367,12 @@ public class WorkController {
         return ApiResponse.ok(Map.of("processId", rows.isEmpty() ? null : rows.get(0).get("process_id")));
     }
 
-    /** 保存报工照片（可选）：I:/yawei-uploads/work/（WebConfig 静态映射 /uploads/** 供访问）；同步 image_count 列 */
+    /** 保存报工照片（可选）：{app.upload-dir}/work/（WebConfig 静态映射 /uploads/** 供访问）；同步 image_count 列 */
     private void saveImages(Long reportId, java.util.List<org.springframework.web.multipart.MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) {
             return;
         }
-        java.nio.file.Path dir = java.nio.file.Path.of("I:/yawei-uploads/work");
+        java.nio.file.Path dir = java.nio.file.Path.of(uploadDir, "work");
         java.nio.file.Files.createDirectories(dir);
         int sort = 0;
         for (var f : images) {
@@ -399,7 +405,7 @@ public class WorkController {
                 if (!path.startsWith("/uploads/work/")) {
                     continue;  // 旧路径（/uploads/2026-xx/）不删，防误伤历史数据
                 }
-                java.nio.file.Path file = java.nio.file.Path.of("I:/yawei-erp-java/web/public" + path);
+                java.nio.file.Path file = java.nio.file.Path.of(legacyWebPublic + path);
                 java.nio.file.Files.deleteIfExists(file);
             }
         } catch (Exception ignored) {

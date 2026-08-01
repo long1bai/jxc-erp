@@ -60,7 +60,7 @@ public class SalesReturnController {
             totalAmt = totalAmt.add(it.quantity().multiply(it.unitPrice() == null ? BigDecimal.ZERO : it.unitPrice()));
         }
         String date = req.returnDate() == null || req.returnDate().isBlank() ? today() : req.returnDate();
-        String srNo = seq.nextDaily("XSTH");
+        String srNo = seq.nextDaily(Constants.SEQ_SALES_RETURN);
         mapper.returnInsert(srNo, req.customerId(), cname == null ? "" : cname, date,
                 req.orderId(), totalQty, totalAmt.setScale(2, RoundingMode.HALF_UP), req.remark());
         Long srId = mapper.lastReturnId(srNo);

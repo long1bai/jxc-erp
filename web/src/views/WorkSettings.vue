@@ -72,9 +72,9 @@
     </el-tabs>
 
     <!-- 分组弹窗 -->
-    <el-dialog v-model="groupVisible" :title="groupForm.id ? '编辑分组' : '新增分组'" width="420px">
-      <el-form label-width="80px" size="small">
-        <el-form-item label="名称" required><el-input v-model="groupForm.name" /></el-form-item>
+    <el-dialog v-model="groupVisible" :title="groupForm.id ? '编辑分组' : '新增分组'" width="480px">
+      <el-form ref="groupFormRef" :rules="groupRules" label-width="80px" size="small">
+        <el-form-item label="名称" required prop="name"><el-input v-model="groupForm.name" /></el-form-item>
         <el-form-item label="说明"><el-input v-model="groupForm.description" /></el-form-item>
       </el-form>
       <template #footer>
@@ -84,9 +84,9 @@
     </el-dialog>
 
     <!-- 员工弹窗 -->
-    <el-dialog v-model="empVisible" :title="empForm.id ? '编辑员工' : '新增员工'" width="460px" destroy-on-close>
-      <el-form label-width="80px" size="small">
-        <el-form-item label="姓名" required><el-input v-model="empForm.name" /></el-form-item>
+    <el-dialog v-model="empVisible" :title="empForm.id ? '编辑员工' : '新增员工'" width="480px" destroy-on-close>
+      <el-form ref="empFormRef" :rules="empRules" label-width="80px" size="small">
+        <el-form-item label="姓名" required prop="name"><el-input v-model="empForm.name" /></el-form-item>
         <el-form-item label="工号"><el-input v-model="empForm.username" placeholder="留空自动生成（W001 起）" /></el-form-item>
         <el-form-item label="分组">
           <el-select v-model="empForm.groupId" clearable placeholder="选择分组" style="width: 100%">
@@ -102,9 +102,9 @@
     </el-dialog>
 
     <!-- 工序弹窗 -->
-    <el-dialog v-model="procVisible" :title="procForm.id ? '编辑工序' : '新增工序'" width="460px">
-      <el-form label-width="80px" size="small">
-        <el-form-item label="名称" required><el-input v-model="procForm.name" /></el-form-item>
+    <el-dialog v-model="procVisible" :title="procForm.id ? '编辑工序' : '新增工序'" width="480px">
+      <el-form ref="procFormRef" :rules="procRules" label-width="80px" size="small">
+        <el-form-item label="名称" required prop="name"><el-input v-model="procForm.name" /></el-form-item>
         <el-form-item label="分组">
           <el-select v-model="procForm.groupId" clearable placeholder="选择分组" style="width: 100%">
             <el-option v-for="g in groups" :key="g.id" :label="g.name" :value="g.id" />
@@ -158,6 +158,8 @@ function openGroup(row) {
   groupVisible.value = true
 }
 async function saveGroup() {
+  const ok = await groupFormRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!groupForm.name.trim()) { ElMessage.warning('请输入分组名称'); return }
   try {
     if (groupForm.id) await request.put(`/work/groups/${groupForm.id}`, groupForm)
@@ -178,6 +180,8 @@ function openEmployee(row) {
   empVisible.value = true
 }
 async function saveEmployee() {
+  const ok = await empFormRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!empForm.name.trim()) { ElMessage.warning('请输入姓名'); return }
   try {
     if (empForm.id) await request.put(`/work/employees/${empForm.id}`, empForm)
@@ -198,6 +202,8 @@ function openProcess(row) {
   procVisible.value = true
 }
 async function saveProcess() {
+  const ok = await procFormRef.value.validate().catch(() => false)
+  if (!ok) return
   if (!procForm.name.trim()) { ElMessage.warning('请输入工序名称'); return }
   try {
     if (procForm.id) await request.put(`/work/processes/${procForm.id}`, procForm)

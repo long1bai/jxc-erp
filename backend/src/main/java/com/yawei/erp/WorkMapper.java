@@ -236,19 +236,19 @@ public interface WorkMapper {
     @Select("SELECT wr.group_id, COALESCE(wr.group_name,'') AS group_name, " +
             "wr.employee_id, COALESCE(wr.employee_name,'') AS employee_name, " +
             "SUM(wr.quantity) AS total_quantity, " +
-            "SUM(wr.quantity * COALESCE(p.unit_price,0)) AS total_wage, COUNT(*) AS report_count " +
+            "SUM(wr.quantity * COALESCE(p.unit_price,0)) AS total_wage, COUNT(*) AS report_count, " +
+            "SUM(wr.image_count) AS image_count " +
             "FROM work_reports wr LEFT JOIN processes p ON p.id = wr.process_id " +
             "WHERE wr.report_date = #{date} AND wr.deleted = 0 " +
             "GROUP BY wr.group_id, wr.group_name, wr.employee_id, wr.employee_name " +
             "ORDER BY wr.group_id, wr.employee_id")
     List<Map<String, Object>> dailyStats(@Param("date") String date);
-
     /** 月度汇总（按员工） */
     @Select("SELECT wr.employee_id, COALESCE(wr.employee_name,'') AS employee_name, " +
             "COALESCE(wr.group_name,'') AS group_name, " +
             "SUM(wr.quantity) AS total_quantity, " +
             "SUM(wr.quantity * COALESCE(p.unit_price,0)) AS total_wage, " +
-            "COUNT(DISTINCT wr.report_date) AS work_days " +
+            "COUNT(DISTINCT wr.report_date) AS work_days, SUM(wr.image_count) AS image_count " +
             "FROM work_reports wr LEFT JOIN processes p ON p.id = wr.process_id " +
             "WHERE DATE_FORMAT(wr.report_date, '%Y-%m') = #{month} AND wr.deleted = 0 " +
             "GROUP BY wr.employee_id, wr.employee_name, wr.group_name ORDER BY total_wage DESC")

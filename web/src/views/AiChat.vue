@@ -70,7 +70,7 @@ async function send() {
 </script>
 
 <style scoped>
-.mb { margin-bottom: 10px; }
+
 .chat-box { height: 430px; overflow-y: auto; background: #f7f8fa; border: 1px solid #e4e7ed; border-radius: 6px; padding: 12px; margin-bottom: 10px; }
 .msg { margin-bottom: 10px; display: flex; }
 .msg.user { justify-content: flex-end; }
