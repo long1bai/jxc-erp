@@ -1,6 +1,6 @@
 # jxcERP v2 压力测试报告
 
-- 时间：2026-08-01 16:59:57
+- 时间：2026-08-01 17:09:52
 - 环境：http://127.0.0.1:8080
 - 测试数据：运行后已全量清理（SQL）+ 单据序列重同步
 
@@ -9,15 +9,15 @@
 | 测试项 | 结果 | 说明 |
 |---|---|---|
 | 30并发创建订单 | ✅ | 成功30/30 重复单号0 耗时0.4s [] |
-| 20并发送货扣减 | ✅ | 成功20/20 库存 200.0→100.0 (期望100.0) 耗时0.3s |
+| 20并发送货扣减 | ✅ | 成功20/20 库存 200.0→100.0 (期望100.0) 耗时0.4s |
 | 10并发同员工打卡 | ✅ | 成功1/10（应仅1条进行中） |
 | 10并发首插盘点单号 | ✅ | 成功10/10 [] |
-| 负载 dashboard/data | ✅ | p50=11ms p95=19ms max=24ms 错误0 |
-| 负载 materials | ✅ | p50=24ms p95=57ms max=87ms 错误0 |
-| 负载 orders | ✅ | p50=29ms p95=51ms max=72ms 错误0 |
-| 负载 purchase-stats/monthly | ✅ | p50=21ms p95=39ms max=56ms 错误0 |
-| 负载 finance/receivable-summary | ✅ | p50=55ms p95=74ms max=89ms 错误0 |
-| 负载 reports/reconciliation | ✅ | p50=12ms p95=26ms max=41ms 错误0 |
+| 负载 dashboard/data | ✅ | p50=10ms p95=18ms max=21ms 错误0 |
+| 负载 materials | ✅ | p50=19ms p95=32ms max=55ms 错误0 |
+| 负载 orders | ✅ | p50=27ms p95=46ms max=66ms 错误0 |
+| 负载 purchase-stats/monthly | ✅ | p50=21ms p95=35ms max=53ms 错误0 |
+| 负载 finance/receivable-summary | ✅ | p50=68ms p95=91ms max=105ms 错误0 |
+| 负载 reports/reconciliation | ✅ | p50=11ms p95=22ms max=42ms 错误0 |
 | 清理压测数据 | ✅ | 已清理 |
 
 ## 场景说明

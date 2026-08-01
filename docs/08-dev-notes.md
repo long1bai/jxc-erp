@@ -337,5 +337,19 @@
 
 ### 遗留小瑕疵（非安全）
 - 不存在的路径（如 GET /api/customers/{id}——CustomerController 无此映射）返回 500 而非 404：NoResourceFoundException 在静态资源 fallback 路径未走 @ExceptionHandler。无数据泄露，内网可接受，后续可修
-- 越权测试（普通用户调 admin 接口）尚未做——后续补
+- ~~越权测试（普通用户调 admin 接口）尚未做~~ **已补测并修复（见下）**
+
+## 6.21 越权修复：管理专属接口角色校验（2026-08-01）
+
+### 漏洞背景（实测确认）
+- 越权测试：普通用户(role=user) token 调 admin 接口——创建用户（含 role=admin！）、触发备份、读日志/配置/字典、**删除客户**全部成功 → 垂直越权高危
+- 根因：鉴权只验 token 有效性（SessionStore.verify），**无任何角色校验**；角色仅用于前端菜单过滤，后端可绕过
+
+### 修复方案（已上线）
+- AuthInterceptor 叠加管理专属校验：`/api/users/**`、`/api/backup/**`、`/api/config/**`、`/api/dicts/**`、`/api/logs/**` + **所有 DELETE 方法** → 仅限管理角色（admin/dev/boss 白名单），普通用户返回 403 `{"success":false,"error":"无权限：该操作仅限管理员"}`
+- 普通用户仍可用业务接口（报工/送货/采购/报表等录入查询），只禁止管理操作
+
+### 验证结果
+- 越权复测：普通用户调 8 个 admin 接口全部 403；admin 正常操作 6 项全部通过
+- e2e 168/168 全过 + 压测 11/11 全过（零破坏）
 
