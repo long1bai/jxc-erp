@@ -9,7 +9,7 @@
     </el-table>
     <el-pagination v-if="items.length > pageSize" :current-page="page" :page-size="pageSize"
                    :page-sizes="pageSizes" :total="items.length"
-                   layout="total, sizes, prev, pager, next, jumper" small
+                   layout="total, sizes, prev, pager, next, jumper" size="small"
                    style="margin-top: 10px; justify-content: flex-end"
                    @current-change="page = $event"
                    @size-change="onSizeChange" />
