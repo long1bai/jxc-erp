@@ -31,7 +31,7 @@ public interface SalesReturnMapper {
                          @Param("sortOrder") int sortOrder);
 
     @Select("<script>SELECT sr.* FROM sales_returns sr " +
-            "<where>sr.deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>sr.deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(sr.sr_no LIKE CONCAT('%',#{kw},'%') OR sr.customer_name LIKE CONCAT('%',#{kw},'%'))</if></where> " +
             "ORDER BY sr.id DESC</script>")
     List<Map<String, Object>> returnList(@Param("kw") String keyword, IPage<Map<String, Object>> page);

@@ -27,7 +27,7 @@ public interface FinanceMapper {
             "FROM receipt_vouchers rv " +
             "LEFT JOIN (SELECT voucher_id, SUM(amount) AS settled FROM settlements " +
             "WHERE settle_type='receipt' AND deleted = 0 GROUP BY voucher_id) s ON s.voucher_id = rv.id " +
-            "<where>rv.deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>rv.deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(rv.rv_no LIKE CONCAT('%',#{kw},'%') OR rv.customer_name LIKE CONCAT('%',#{kw},'%'))" +
             "</if></where> ORDER BY rv.id DESC</script>")
     List<Map<String, Object>> receiptList(@Param("kw") String keyword, IPage<Map<String, Object>> page);
@@ -52,7 +52,7 @@ public interface FinanceMapper {
             "FROM payment_vouchers pv " +
             "LEFT JOIN (SELECT voucher_id, SUM(amount) AS settled FROM settlements " +
             "WHERE settle_type='payment' AND deleted = 0 GROUP BY voucher_id) s ON s.voucher_id = pv.id " +
-            "<where>pv.deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>pv.deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(pv.pv_no LIKE CONCAT('%',#{kw},'%') OR pv.supplier_name LIKE CONCAT('%',#{kw},'%'))" +
             "</if></where> ORDER BY pv.id DESC</script>")
     List<Map<String, Object>> paymentList(@Param("kw") String keyword, IPage<Map<String, Object>> page);

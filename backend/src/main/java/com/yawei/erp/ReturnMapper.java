@@ -32,7 +32,7 @@ public interface ReturnMapper {
                          @Param("sortOrder") int sortOrder);
 
     @Select("<script>SELECT pr.* FROM purchase_returns pr " +
-            "<where>pr.deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>pr.deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(pr.pr_no LIKE CONCAT('%',#{kw},'%') OR pr.supplier_name LIKE CONCAT('%',#{kw},'%'))</if></where> " +
             "ORDER BY pr.id DESC</script>")
     List<Map<String, Object>> returnList(@Param("kw") String keyword, IPage<Map<String, Object>> page);

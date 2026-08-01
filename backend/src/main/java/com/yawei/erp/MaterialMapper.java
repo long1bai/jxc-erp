@@ -13,7 +13,7 @@ import java.util.List;
 public interface MaterialMapper extends BaseMapper<Material> {
 
     @Select("<script>SELECT * FROM materials " +
-            "<where>deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(name LIKE CONCAT('%',#{kw},'%') OR code LIKE CONCAT('%',#{kw},'%') " +
             "OR spec LIKE CONCAT('%',#{kw},'%') OR category LIKE CONCAT('%',#{kw},'%'))" +
             "</if></where> ORDER BY id DESC</script>")

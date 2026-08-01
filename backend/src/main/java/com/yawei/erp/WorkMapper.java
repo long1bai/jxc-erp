@@ -41,7 +41,7 @@ public interface WorkMapper {
     // ============ 员工 ============
     @Select("<script>SELECT id, username, name, phone, COALESCE(group_id,0) AS group_id, " +
             "COALESCE(group_name,'') AS group_name, role, status FROM work_employees " +
-            "<where>deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(name LIKE CONCAT('%',#{kw},'%') OR username LIKE CONCAT('%',#{kw},'%'))</if></where> " +
             "ORDER BY group_id, id</script>")
     List<Map<String, Object>> employees(@Param("kw") String keyword);
@@ -68,7 +68,7 @@ public interface WorkMapper {
     // ============ 工序 ============
     @Select("<script>SELECT p.*, COALESCE(g.name,'') AS group_name FROM processes p " +
             "LEFT JOIN work_groups g ON g.id = p.group_id " +
-            "<where>p.deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>p.deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(p.name LIKE CONCAT('%',#{kw},'%'))</if></where> ORDER BY p.group_id, p.sort_order, p.id</script>")
     List<Map<String, Object>> processes(@Param("kw") String keyword);
 

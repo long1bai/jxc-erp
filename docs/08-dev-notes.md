@@ -244,3 +244,42 @@
 - 写操作自动入操作日志表（operation_logs），无需手动
 - 新菜单进 MENU_TREE（角色可见性在这里控制），前端零改动
 - 分页接口统一返回 {items, total, current, size}（PageResult.toMap()）
+
+## 6.18 全功能 E2E 测试 + 3 个 Bug 修复（2026-08-01）
+
+### 测试资产
+- 自动化脚本：`scripts/e2e_test.py`（REST API 全链路，168 项断言，可重复执行）
+  - 测试数据统一「【测试】」前缀 + 运行序号（可并发跑不撞名）
+  - 结束自动 SQL 清理（生产库不留脏数据）+ **单据序列重同步**（见下）
+  - 报告输出：`docs/test-reports/<日期>-e2e-test.md`
+  - 运行：`cd /i/yawei-erp-java/scripts && python e2e_test.py`（后端须在 8080 运行）
+
+### Bug 1：所有关键词搜索 500（严重）
+- 现象：客户/供应商/物料/订单/送货/采购/退货/员工/工序/BOM 列表带 keyword 搜索全部报 SQL 语法错误
+- 根因：`<where>deleted = 0 <if test='kw...'>` 后接 `(name LIKE ...)` 缺 `AND`，拼出 `WHERE deleted = 0 (name LIKE...)`
+- 修复：9 个 Mapper（Customer/Material/Supplier/Finance×2/Return/SalesReturn/Work×2/Bom/Trade×3）共 13 处补 `AND `
+- 教训：**MyBatis `<where>` 不会自动在条件间补 AND**，多条件时第二个 `<if>` 必须自带 `AND` 前缀
+
+### Bug 2：BOM 更新/重建必报唯一键冲突（严重）
+- 现象：`POST /api/bom/{productId}` 第二次保存报 `Duplicate entry ... for key 'bom_items.uk_bom'`
+- 根因：保存是「先清后插」，但清是软删（`UPDATE bom_items SET deleted=1`），唯一索引 (product_id, component_id) 仍被软删行占用 → 重插必冲突
+- 修复：`BomMapper.bomDeleteByProduct` 改为硬删 `DELETE FROM bom_items WHERE product_id=...`
+- 教训：**软删 + 唯一索引的组合要小心**——软删行仍占唯一键，重插同键数据会 500
+
+### Bug 3：库存调拨虚增库存（严重）
+- 现象：调拨 5 个物料后总库存反而 +10（调出仓+5、调入仓+5）
+- 根因：调拨出库流水存了 `quantity.negate()`（负数）配 `move_type='out'`，而库存汇总对 out 类型取 `-quantity` → 双重取反变入库
+- 修复：`StockTransferController` 出库流水去掉 negate，与其他单据一致（out 记正数数量）
+- 教训：**move_type='out' 的流水一律记正数数量**，汇总端统一 `-quantity`；写负数数量是隐藏雷
+
+### 单据序列重同步（测试清理后必做）
+- 场景：测试/误删硬删了单据行但序列表继续自增没问题；**若库里残留软删单据行（deleted=1）而序列表回退，下一单号会撞唯一键，且事务回滚让序号永远卡死**（盘点单 PD-20260801-0003 实踩，盘点功能当天锁死）
+- 修复：清理脚本末尾对每个单据前缀执行 `seq = MAX(现存单号数字)`（含软删行）→ 下一号 = MAX+1 永不复用已占用号
+- 涉及前缀：PD(盘点)/CGDD(采购)/XSDD(订单)/SH-XSDD(送货)/XSTH(销售退货)/TH(采购退货)/CPRK(成品入库)/PCTL(生产退料)/ST(调拨)
+
+### 已确认按设计的行为（非 Bug）
+- 成品入库**不**自动扣 BOM 组件——报工按「工序物料绑定(process_materials)」自动扣料，避免重复扣（见 6.12）
+- 删除采购/送货单会删对应库存流水 → 库存自动回滚（逻辑删除流水=库存回补）
+- 资金账户有收支/转账记录时禁止删除（提示改名称），属保护逻辑
+- 重复取消报工幂等成功（UPDATE ... WHERE status='in_progress' 再执行 0 行也返回成功）
+

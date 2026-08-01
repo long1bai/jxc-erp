@@ -20,7 +20,7 @@ public interface TradeMapper {
     @Select("<script>SELECT po.id, po.po_no, po.po_date, po.supplier_id, COALESCE(s.name,'') AS supplier_name, " +
             "po.total_quantity, po.total_amount, po.remark, po.created_at " +
             "FROM purchase_orders po LEFT JOIN suppliers s ON s.id = po.supplier_id " +
-            "<where>po.deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>po.deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(po.po_no LIKE CONCAT('%',#{kw},'%') OR COALESCE(s.name,'') LIKE CONCAT('%',#{kw},'%'))" +
             "</if></where> ORDER BY po.id DESC</script>")
     List<Map<String, Object>> purchaseList(@Param("kw") String keyword, IPage<Map<String, Object>> page);
@@ -59,7 +59,7 @@ public interface TradeMapper {
             "o.status, o.remark, o.created_at " +
             "FROM customer_orders o LEFT JOIN customers c ON c.id = o.customer_id " +
             "<where>o.deleted = 0 " +
-            "<if test='kw != null and kw != \"\"'>" +
+            "<if test='kw != null and kw != \"\"'>AND " +
             "(o.co_no LIKE CONCAT('%',#{kw},'%') OR COALESCE(c.name,'') LIKE CONCAT('%',#{kw},'%'))</if>" +
             "<if test='status != null and status != \"\"'> AND o.status = #{status}</if>" +
             "</where> ORDER BY o.id DESC</script>")
@@ -108,7 +108,7 @@ public interface TradeMapper {
             "FROM delivery_notes d " +
             "LEFT JOIN customers c ON c.id = d.customer_id " +
             "LEFT JOIN customer_orders o ON o.id = d.customer_order_id " +
-            "<where>d.deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>d.deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(d.dn_no LIKE CONCAT('%',#{kw},'%') OR COALESCE(c.name,'') LIKE CONCAT('%',#{kw},'%') " +
             "OR COALESCE(o.co_no,'') LIKE CONCAT('%',#{kw},'%'))" +
             "</if></where> ORDER BY d.id DESC</script>")

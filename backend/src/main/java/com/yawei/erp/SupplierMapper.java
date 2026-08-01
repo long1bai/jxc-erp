@@ -12,7 +12,7 @@ import java.util.List;
 public interface SupplierMapper extends BaseMapper<Supplier> {
 
     @Select("<script>SELECT * FROM suppliers " +
-            "<where>deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(name LIKE CONCAT('%',#{kw},'%') OR code LIKE CONCAT('%',#{kw},'%') " +
             "OR contact LIKE CONCAT('%',#{kw},'%') OR phone LIKE CONCAT('%',#{kw},'%'))" +
             "</if></where> ORDER BY id DESC</script>")

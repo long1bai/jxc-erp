@@ -21,7 +21,7 @@ public interface BomMapper {
             "m.spec AS product_spec, m.unit AS product_unit, " +
             "(SELECT COUNT(*) FROM bom_items b WHERE b.product_id = m.id) AS component_count " +
             "FROM bom_items b JOIN materials m ON m.id = b.product_id " +
-            "<where>b.deleted = 0 AND m.deleted = 0 <if test='kw != null and kw != \"\"'>" +
+            "<where>b.deleted = 0 AND m.deleted = 0 <if test='kw != null and kw != \"\"'>AND " +
             "(m.code LIKE CONCAT('%',#{kw},'%') OR m.name LIKE CONCAT('%',#{kw},'%'))</if></where> " +
             "ORDER BY m.id DESC</script>")
     List<Map<String, Object>> bomProducts(@Param("kw") String keyword, IPage<Map<String, Object>> page);
@@ -44,7 +44,7 @@ public interface BomMapper {
     int bomInsert(@Param("productId") Long productId, @Param("componentId") Long componentId,
                   @Param("quantity") BigDecimal quantity);
 
-    @Update("UPDATE bom_items SET deleted = 1 WHERE product_id = #{productId}")
+    @Delete("DELETE FROM bom_items WHERE product_id = #{productId}")
     int bomDeleteByProduct(@Param("productId") Long productId);
 
     /** 生成雪花主键（触发器同款 sfid()） */
