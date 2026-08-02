@@ -2,7 +2,7 @@
   <el-container class="layout">
     <!-- 主菜单 -->
     <el-aside width="200px" class="aside" :class="{ 'mobile-open': mobileMenuOpen }">
-      <div class="brand">📦 jxc进销存 <span class="ver">v2.0</span></div>
+      <div class="brand">📦 {{ systemName }} <span class="ver">v2.0</span></div>
       <div v-if="currentMod" class="mod-title">
         <el-icon v-if="currentMod?.icon" size="14"><component :is="currentMod.icon" /></el-icon>
         {{ currentMod?.title }}
@@ -37,7 +37,7 @@
           <el-button v-if="isMobile" link class="hamburger" @click="mobileMenuOpen = true" aria-label="菜单">
             <el-icon size="20"><Menu /></el-icon>
           </el-button>
-          <div class="header-title">jxc进销存系统</div>
+          <div class="header-title">{{ systemName }}系统</div>
         </div>
         <div class="header-right">
           <span class="user">
@@ -117,17 +117,22 @@ const menus = ref([])
 
 const isMobile = ref(window.innerWidth <= 767)
 const mobileMenuOpen = ref(false)
+const systemName = ref('进销存系统')
 function onResize() {
   isMobile.value = window.innerWidth <= 767
   if (!isMobile.value) mobileMenuOpen.value = false
 }
 
-// 菜单由后端按角色下发（动态菜单，前端不硬编码）
+// 菜单由后端按角色下发（动态菜单，前端不硬编码）；系统名由后端配置下发（买家可改）
 onMounted(async () => {
   window.addEventListener('resize', onResize)
   try {
-    const mr = await request.get('/menus')
+    const [mr, cr] = await Promise.all([
+      request.get('/menus'),
+      request.get('/config/company').catch(() => null),
+    ])
     menus.value = mr.data.menus || []
+    if (cr?.data?.systemName) systemName.value = cr.data.systemName
     syncModule() // 菜单就绪后同步当前模块选中
   } catch (e) {
     // 菜单加载失败不阻塞页面（路由守卫仍按角色拦截）

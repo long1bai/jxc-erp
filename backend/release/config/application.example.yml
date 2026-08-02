@@ -1,0 +1,51 @@
+# ============================================================
+# jxc进销存 - 部署配置示例（买家部署时复制本文件为 application.yml 并按需修改）
+# 所有配置都支持环境变量覆盖（见行内注释），也可直接改本文件。
+# 推荐做法：部署时设置环境变量，不改任何文件，升级无冲突。
+# ============================================================
+
+server:
+  port: ${ERP_PORT:8080}                    # Web 端口（默认 8080）
+
+# ===== 业务路径 =====
+app:
+  upload-dir: ${ERP_UPLOAD_DIR:D:/yawei/01-ERP/yawei-uploads}           # 上传文件根目录
+  backup-dir: ${ERP_BACKUP_DIR:D:/yawei/01-ERP/yawei-erp-java/backup}   # 数据库备份目录
+  mysqldump-path: ${ERP_MYSQLDUMP:D:/yawei/01-ERP/mysql/8.0.28/bin/mysqldump.exe}  # mysqldump 路径
+  ai-config: ${ERP_AI_CONFIG:D:/yawei/01-ERP/yawei-erp-config/ai_config.json}      # AI 报价配置
+  photo-config: ${ERP_PHOTO_CONFIG:D:/yawei/01-ERP/yawei-erp-config/photo_config.json}  # 拍照识别配置
+  jwt-secret-file: ${ERP_JWT_SECRET:D:/yawei/01-ERP/yawei-erp-config/jwt_secret.txt}    # JWT 密钥文件
+  jwt-expire-days: ${ERP_JWT_EXPIRE_DAYS:7}   # token 有效期（天）
+  legacy-web-public: ${ERP_LEGACY_WEB_PUBLIC:D:/yawei/01-ERP/yawei-erp-java/web/public}  # 旧版路径（可留空）
+
+# ===== 数据库连接（买家必改：账号/密码/库名）=====
+spring:
+  datasource:
+    url: ${ERP_DB_URL:jdbc:mysql://127.0.0.1:3306/yawei_erp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${ERP_DB_USER:root}            # 数据库账号（默认 root）
+    password: ${ERP_DB_PASSWORD:}            # 数据库密码（默认空；生产环境务必设置）
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 30MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    banner: false
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# ============================================================
+# 环境变量速查表（Windows 设置示例）:
+#   setx ERP_PORT 9000
+#   setx ERP_DB_USER erp_user
+#   setx ERP_DB_PASSWORD "your-strong-password"
+#   setx ERP_DB_URL "jdbc:mysql://127.0.0.1:3306/yawei_erp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
+#   setx ERP_UPLOAD_DIR "D:/yawei/01-ERP/yawei-uploads"
+# ============================================================

@@ -79,7 +79,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const main = ref({})
 const items = ref([])
-const company = ref({ companyName: '示例公司有限公司', address: '', phone: '' })
+const company = ref({ companyName: '', address: '', phone: '' })
 
 const creatorName = computed(() => userStore.displayName || '')
 

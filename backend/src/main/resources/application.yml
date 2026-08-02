@@ -1,26 +1,26 @@
 server:
-  port: 8080
+  port: ${ERP_PORT:8080}
   servlet:
     encoding:
       charset: UTF-8
       force: true
 
-# ===== 业务路径配置（迁移服务器/换盘符只改这里，不碰代码）=====
+# ===== 业务路径配置（环境变量优先，未设置用默认；买家部署改环境变量即可）=====
 app:
-  upload-dir: I:/yawei-uploads          # 上传文件根目录（报工图片 /uploads/** 静态映射）
-  backup-dir: I:/yawei-erp-java/backup  # 数据库备份目录
-  mysqldump-path: C:/mysql/8.0.28/bin/mysqldump.exe  # mysqldump 可执行文件路径
-  ai-config: I:/yawei-erp/ai_config.json     # AI 报价助手配置文件
-  photo-config: I:/yawei-erp/photo_config.json  # 拍照识别配置文件
-  jwt-secret-file: I:/yawei-erp/jwt_secret.txt  # JWT 签名密钥（不存在自动生成，重启不变；密钥不进 git）
-  jwt-expire-days: 7                          # 登录 token 有效期（天）
-  legacy-web-public: I:/yawei-erp-java/web/public  # 旧版上传路径（清理历史文件用，新部署不再产生）
+  upload-dir: ${ERP_UPLOAD_DIR:I:/yawei-uploads}          # 上传文件根目录（报工图片 /uploads/** 静态映射）
+  backup-dir: ${ERP_BACKUP_DIR:I:/yawei-erp-java/backup}  # 数据库备份目录
+  mysqldump-path: ${ERP_MYSQLDUMP:C:/mysql/8.0.28/bin/mysqldump.exe}  # mysqldump 可执行文件路径
+  ai-config: ${ERP_AI_CONFIG:I:/yawei-erp/ai_config.json}     # AI 报价助手配置文件
+  photo-config: ${ERP_PHOTO_CONFIG:I:/yawei-erp/photo_config.json}  # 拍照识别配置文件
+  jwt-secret-file: ${ERP_JWT_SECRET:I:/yawei-erp/jwt_secret.txt}  # JWT 签名密钥（不存在自动生成，重启不变；密钥不进 git）
+  jwt-expire-days: ${ERP_JWT_EXPIRE_DAYS:7}                  # 登录 token 有效期（天）
+  legacy-web-public: ${ERP_LEGACY_WEB_PUBLIC:I:/yawei-erp-java/web/public}  # 旧版上传路径（清理历史文件用，新部署不再产生）
 
 spring:
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/yawei_erp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: ""
+    url: ${ERP_DB_URL:jdbc:mysql://127.0.0.1:3306/yawei_erp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${ERP_DB_USER:root}
+    password: ${ERP_DB_PASSWORD:REDACTED_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   servlet:
     multipart:

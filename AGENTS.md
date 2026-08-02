@@ -4,20 +4,21 @@
 
 ## 项目定位
 
-示例公司有限公司内部 ERP（进销存+生产报工），**小厂内部使用，局域网部署，实用优先**。唯一开发者=老板本人，通过 AI（Hermes）协作开发。所有功能**实测通过才交付**。
+jxc进销存 v2：进销存+生产报工的 ERP 系统。**原为jxc公司内部用，2026-08-02 起转向"可卖的产品"**——公司名/系统名/单号前缀/休息时段/AI 供应商全部可配置（sys_config 表 + ai_config.json + 环境变量），管理员在"系统→系统配置"页可视化修改。局域网部署，实用优先。唯一开发者=老板本人，通过 AI（Hermes）协作开发。所有功能**实测通过才交付**。
 
 - v2（本仓库）：Java 21 + Spring Boot 4.1 + MyBatis-Plus + MySQL 8 + Vite/Vue3/Element Plus，8080 一体部署
-- v1（仍在用）：`I:\yawei-erp`，FastAPI + SQLite，8000 端口——**数据口径需对照核验**（预警数/待处理订单等）
+- v1（旧版停用）：`I:\yawei-erp`，FastAPI + SQLite，8000 端口——仅数据核验参考
 
 ## 技术栈与目录
 
 ```
-backend/   Spring Boot 4.1 + MyBatis-Plus（注解 SQL 为主），Controller 用 record 定义请求体
+backend/   Spring Boot 4.1 + MyBatis-Plus（注解 SQL 为主），分层：controller/service/mapper/entity/dto/common/config/security/client/interceptor/util（2026-08-02 重构，复杂模块已抽 Service）
 web/       Vue 3 + Vite + Element Plus + Pinia（Element Plus 中文文档为准）
 docs/      01产品 02架构 03后端 04前端 05API 06数据库 07功能 08开发备忘 09运维 10AI
-scripts/   e2e_test.py（168项回归）+ stress_test.py（11项压测）—— 交付前必跑
-db/        init.sql 建表；生产库 yawei_erp（root 无密码）
-backup/    数据库备份（gitignore）
+scripts/   e2e_test.py（180项回归）+ stress_test.py（11项压测）—— 交付前必跑
+db/        init.sql 建表；生产库 yawei_erp（root 密码见 yawei-erp-config/db_secret.env）
+backup/    数据库备份（gitignore）；backup/daily/ 容灾日备份 + 异地（OFF_SITE_BACKUP_DIR）
+yawei-erp-config/  ai_config.json（AI 供应商/模型/提示词）+ photo_config.json + jwt_secret.txt + db_secret.env（数据库密码）
 ```
 
 ## 必读文档（按优先级）
@@ -87,10 +88,12 @@ backup/    数据库备份（gitignore）
 
 ```bash
 # MySQL（Windows 风格路径！）
-/c/mysql/8.0.28/bin/mysqld.exe --defaults-file='C:/mysql/my.ini'
-# 后端
-cd /i/yawei-erp-java/backend && java -jar target/yawei-erp-0.0.1-SNAPSHOT.jar   # curl 轮询 200 就绪
+/c/Users/17815/Desktop/yawei/01-ERP/mysql/8.0.28/bin/mysqld.exe --defaults-file='C:/Users/17815/Desktop/yawei/01-ERP/mysql/my.ini'
+# 后端（必须从 release/ 目录启动，读外部 config/application.yml）
+cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/backend/release && java -jar ../target/yawei-erp-0.0.1-SNAPSHOT.jar   # curl 轮询 200 就绪
 # 前端（开发）
-cd /i/yawei-erp-java/web && npm run dev   # 5173
+cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/web && npm run dev   # 5173
+# 数据库（root 有密码！）
+/c/Users/17815/Desktop/yawei/01-ERP/mysql/8.0.28/bin/mysql.exe -uroot -p<密码见db_secret.env> yawei_erp
 # 停后端：netstat 拿 8080 真实 PID → taskkill /PID <pid> /F（bash 包装 PID 无效）
 ```

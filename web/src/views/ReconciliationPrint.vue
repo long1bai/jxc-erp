@@ -72,7 +72,7 @@ const items = ref([])
 const total = ref(0)
 const start = ref('')
 const end = ref('')
-const company = ref({ companyName: '示例公司有限公司', address: '', phone: '', contactName: '' })
+const company = ref({ companyName: '', address: '', phone: '', contactName: '' })
 const creatorName = ref('')
 const isSales = computed(() => route.query.type !== 'purchase')
 

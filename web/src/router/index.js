@@ -37,6 +37,7 @@ import ProductionStats from '../views/ProductionStats.vue'
 import ExpressCompanies from '../views/ExpressCompanies.vue'
 import Users from '../views/Users.vue'
 import Backup from '../views/Backup.vue'
+import SystemConfig from '../views/SystemConfig.vue'
 import Placeholder from '../views/Placeholder.vue'
 import Help from '../views/Help.vue'
 
@@ -72,6 +73,7 @@ const router = createRouter({
         { path: 'production/stats', component: ProductionStats, meta: { title: '生产统计', roles: ['admin', 'dev', 'boss'] } },
         { path: 'base/express', component: ExpressCompanies, meta: { title: '快递物流', roles: ['admin', 'dev'] } },
         { path: 'system/users', component: Users, meta: { title: '用户管理', roles: ['admin', 'dev'] } },
+        { path: 'system/config', component: SystemConfig, meta: { title: '系统配置', roles: ['admin'] } },
         { path: 'system/backup', component: Backup, meta: { title: '数据备份', roles: ['admin', 'dev'] } },
         { path: 'system/logs', component: () => import('../views/OperationLogs.vue'), meta: { title: '操作日志', roles: ['admin', 'dev'] } },
         { path: 'base/customers', component: Customers, meta: { title: '客户', roles: ['admin', 'dev'] } },

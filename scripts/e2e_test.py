@@ -24,7 +24,8 @@ PREFIX = "【测试】"
 TAG = datetime.now().strftime("%Y%m%d-%H%M%S")
 SUF = TAG[-4:]
 RESULTS = []
-MYSQL = r"C:\mysql\8.0.28\bin\mysql.exe"
+MYSQL = r"C:\Users\17815\Desktop\yawei\01-ERP\mysql\8.0.28\bin\mysql.exe"
+DB_PASS_REF = r"REDACTED_PASSWORD"
 
 
 def api(method, path, body=None, params=None, raw_bytes=None, content_type="application/json", timeout=40):
@@ -337,7 +338,7 @@ def mod_po_order(base):
     # 入库单关联检查：receive 生成的采购单 po_order_id 指向本订单（查库验证）
     linked = 0
     try:
-        p = subprocess.run([MYSQL, "-uroot", "yawei_erp", "-N", "-e",
+        p = subprocess.run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "yawei_erp", "-N", "-e",
                             "SELECT COUNT(*) FROM purchase_orders WHERE po_order_id=%s AND deleted=0" % po_id],
                            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
         linked = int((p.stdout or "0").strip() or 0)
@@ -713,7 +714,7 @@ UPDATE sequences s SET seq = (SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(transfer_
 SET FOREIGN_KEY_CHECKS=1;
 """
     try:
-        p = subprocess.run([MYSQL, "-uroot", "yawei_erp", "-e", sql], capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace")
+        p = subprocess.run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "yawei_erp", "-e", sql], capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace")
         if p.returncode == 0:
             rec("SQL 清理测试数据", True, "生产库已清理")
         else:
@@ -754,7 +755,7 @@ def main():
         for name, ok, detail in RESULTS:
             if not ok:
                 print("  FAIL %s | %s" % (name, detail[:200]))
-    out_dir = r"I:\yawei-erp-java\docs\test-reports"
+    out_dir = r"C:\Users\17815\Desktop\yawei\01-ERP\yawei-erp-java\docs\test-reports"
     os.makedirs(out_dir, exist_ok=True)
     fname = os.path.join(out_dir, "%s-e2e-test.md" % datetime.now().strftime("%Y-%m-%d"))
     with open(fname, "w", encoding="utf-8") as f:

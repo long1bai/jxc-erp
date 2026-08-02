@@ -8,8 +8,8 @@
 | 前端 | Mermaid | 11.x | 使用指南流程图（改文字即改图） |
 | 后端 | Java + Spring Boot | JDK 21 / Spring Boot 4.1 | `backend/` 目录 |
 | 持久层 | MyBatis-Plus + MyBatis | 3.5.17 | 注解 SQL，无 XML mapper |
-| 数据库 | MySQL | 8.0 | 库名 `yawei_erp`，root 无密码（内网） |
-| AI | DashScope qwen-plus / qwen3-vl-plus | - | 报价聊天 / 拍照识别 |
+| 数据库 | MySQL | 8.0 | 库名 `yawei_erp`，root 密码 `REDACTED_PASSWORD`（2026-08-02 加固，存 db_secret.env） |
+| AI | DashScope qwen-plus / qwen3-vl-plus | - | 报价聊天 / 拍照识别；模型/提示词可配置（ai_config.json） |
 
 ## 2. 架构总览
 
@@ -20,13 +20,21 @@
 Vue3 SPA (web/src)          ── axios (web/src/utils/request.js) ──►  /api/*  ──►  后端 8080
     │ 路由守卫按角色(employee/admin/boss/dev)过滤
     ▼
-Spring Boot (backend/src/main/java/com/yawei/erp)
-    ├── *Controller.java      REST 接口（ApiResponse 统一包装 {success,data,error}）
-    ├── *Mapper.java          MyBatis 注解 SQL（含 <script> 动态 SQL）
-    ├── MybatisPlusConfig     Spring Boot 4 下手动装配 SqlSessionFactory + 分页插件
+Spring Boot (backend/src/main/java/com/yawei/erp)   ← 2026-08-02 分层重构
+    ├── controller/    REST 接口（ApiResponse 统一包装 {success,data,error}；只做参数绑定）
+    ├── service/      业务逻辑（Work/Photo/Finance/PoOrder/Production 已抽，CRUD 类后续）
+    ├── mapper/       MyBatis 注解 SQL（含 <script> 动态 SQL）
+    ├── entity/       实体（Customer/Material/Supplier/User/Warehouse/OperationLog）
+    ├── dto/          record 请求/响应对象（XxxDtos 聚合类）
+    ├── common/       ApiResponse/PageResult/Constants/GlobalExceptionHandler/BaseController
+    ├── config/       MybatisPlusConfig/WebConfig（环境变量占位符 ${ERP_XXX:默认}）
+    ├── security/     AuthInterceptor/SessionStore/PasswordUtils/TokenUtils
+    ├── client/       DashScopeClient（模型/提示词从配置读）
+    ├── interceptor/  OperationLogInterceptor
+    ├── util/         SequenceUtil/MoneyUtils
     └── YaweiErpApplication   启动类
     ▼
-MySQL 8 (yawei_erp, 27 张表)
+MySQL 8 (yawei_erp, 27 张表; sys_config 存品牌/业务参数)
 ```
 
 - 前后端分离部署：`vite dev` 时 5173 出页面（`web/vite.config.js` 代理 /api → 8080）；8080 只出 API

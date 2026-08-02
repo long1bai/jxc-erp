@@ -14,7 +14,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-MYSQL = r"C:\mysql\8.0.28\bin\mysql.exe"
+MYSQL = r"C:\Users\17815\Desktop\yawei\01-ERP\mysql\8.0.28\bin\mysql.exe"
+DB_PASS_REF = r"REDACTED_PASSWORD"
 BACKUP_ROOT = Path(r"H:\jxc系统备份\ERP")
 PROD_DB = "yawei_erp"
 
@@ -60,7 +61,7 @@ def main():
 
     # 2. 建临时库（幂等：先删后建）
     tmp_db = "yawei_drill_%s" % datetime.now().strftime("%H%M%S")
-    p = run([MYSQL, "-uroot", "-e", "DROP DATABASE IF EXISTS `%s`; CREATE DATABASE `%s` CHARACTER SET utf8mb4;" % (tmp_db, tmp_db)])
+    p = run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-e", "DROP DATABASE IF EXISTS `%s`; CREATE DATABASE `%s` CHARACTER SET utf8mb4;" % (tmp_db, tmp_db)])
     if p.returncode != 0:
         print("FAIL: 建临时库 %s" % (p.stderr or "")[:200])
         return 1
@@ -72,7 +73,7 @@ def main():
     except Exception as e:
         print("FAIL: 读备份文件 %s" % str(e)[:200])
         return 1
-    p = subprocess.run([MYSQL, "-uroot", tmp_db], input=sql_text,
+    p = subprocess.run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, tmp_db], input=sql_text,
                        capture_output=True, text=True, timeout=900,
                        encoding="utf-8", errors="replace")
     if p.returncode != 0:
@@ -83,10 +84,10 @@ def main():
     # 4. 数据层冒烟
     fails = []
     # 4a. 表数量对比（备份库 vs 生产库，应一致）
-    p = run([MYSQL, "-uroot", "-N", "-e",
+    p = run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-N", "-e",
              "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='%s'" % tmp_db])
     tmp_tables = int(p.stdout.strip() or 0)
-    p = run([MYSQL, "-uroot", "-N", "-e",
+    p = run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-N", "-e",
              "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='%s'" % PROD_DB])
     prod_tables = int(p.stdout.strip() or 0)
     print("  表数量: 备份=%d 生产=%d %s" % (tmp_tables, prod_tables, "OK" if tmp_tables == prod_tables else "⚠ 不一致"))
@@ -95,7 +96,7 @@ def main():
 
     # 4b. 关键表行数抽查
     for t, expect in SMOKE_TABLES.items():
-        p = run([MYSQL, "-uroot", "-N", "-e",
+        p = run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-N", "-e",
                  "SELECT COUNT(*) FROM `%s`.`%s`" % (tmp_db, t)])
         if p.returncode != 0:
             fails.append("%s 查询失败" % t)
@@ -109,13 +110,13 @@ def main():
             fails.append("%s 行数不足(%d)" % (t, n))
 
     # 4c. 最新业务数据存在性（确保备份不是很久以前的）
-    p = run([MYSQL, "-uroot", "-N", "-e",
+    p = run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-N", "-e",
              "SELECT COALESCE(MAX(created_at),'') FROM `%s`.`purchase_orders`" % tmp_db])
     latest = p.stdout.strip()
     print("  备份中最近采购单时间: %s" % (latest or "(空)"))
 
     # 5. 清理临时库
-    run([MYSQL, "-uroot", "-e", "DROP DATABASE IF EXISTS `%s`" % tmp_db])
+    run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-e", "DROP DATABASE IF EXISTS `%s`" % tmp_db])
     print("  临时库已清理")
 
     if fails:

@@ -2,7 +2,7 @@
   <div class="login-wrap">
     <el-card class="login-card" shadow="always">
       <div class="login-brand">
-        📦 jxc进销存
+        📦 {{ systemName }}
         <span class="ver">v2.0</span>
       </div>
       <div class="login-sub">Java + MySQL 新架构</div>
@@ -56,6 +56,7 @@ const userStore = useUserStore()
 const username = ref('admin')
 const password = ref('')
 const loading = ref(false)
+const systemName = ref('进销存系统')
 
 // 浏览器密码管理器会在页面挂载后自动填充密码框（DOM 覆盖 v-model）——
 // 延迟清空兜底，保证登录页始终从空密码开始
@@ -63,6 +64,12 @@ onMounted(() => {
   setTimeout(() => {
     password.value = ''
   }, 100)
+  // 系统名由后端配置下发（买家可改，登录页不硬编码）
+  import('../api/catalog').then(({ catalogApi }) => {
+    catalogApi.company().then((res) => {
+      if (res?.data?.systemName) systemName.value = res.data.systemName
+    }).catch(() => {})
+  })
 })
 
 async function doLogin() {

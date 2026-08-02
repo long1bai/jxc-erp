@@ -28,3 +28,6 @@ __pycache__/
 *.pyc
 scripts/dr_daemon.log
 scripts/.dr_daemon.lock
+
+# ===== 发布产物 =====
+backend/release/*.jar

@@ -184,7 +184,25 @@
 | POST | /backup/create | 手动备份（mysqldump → backup/） |
 | GET | /backup/list | 备份列表 |
 
-## 12. 常用调用示例
+## 12. 系统配置 Config（2026-08-02 新增，仅 admin）
+
+> 系统 → 系统配置 页面（SystemConfig.vue）的后端。管理品牌/业务参数/AI 配置，保存立即生效。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | /config/company | 公司信息（**未登录可访问**，登录页显示品牌）：companyName/systemName/address/phone |
+| GET | /config/all | 全部 sys_config：`{items:[{config_key, config_value, remark}]}`（19 参数：company_*/system_name/seq_*/default_*/employee_no_prefix/break_*） |
+| PUT | /config | 批量保存：`{"key":"value", ...}`（**KNOWN_KEYS 白名单 19 键**，未知键跳过；返回 {saved: N}） |
+| GET | /config/ai | 读 ai_config.json（**api_key 脱敏只显后 4 位**，api_key_set 标记） |
+| PUT | /config/ai | 写 ai_config.json：`{api_url, api_key, chat_model, vision_model, system_prompt}`（api_key 传 `****` 占位则保留旧值） |
+
+可配置参数清单（PUT /config 白名单）：
+- 品牌：company_name / company_address / company_phone / system_name
+- 单号前缀：seq_ie / seq_zz / seq_cgdd / seq_th / seq_rcv / seq_pay / seq_inv / seq_po
+- 业务：default_warehouse / default_material_category / employee_no_prefix
+- 报工休息：break_lunch_start / break_lunch_end / break_dinner_start / break_dinner_end
+
+## 13. 常用调用示例
 
 ```bash
 # 登录拿 token

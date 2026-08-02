@@ -1,33 +1,63 @@
 # -*- coding: utf-8 -*-
 """
-jxc ERP v2 容灾备份脚本（2026-08-01 新增）
-- 数据库全量备份（mysqldump）→ H:\jxc系统备份\ERP\YYYYMMDD\
-- 上传图片增量拷贝（I:\yawei-uploads → 同目录 uploads\）
+jxc ERP v2 容灾备份脚本（2026-08-01 新增，2026-08-02 新电脑适配 + 数据库密码 + 异地备份）
+- 数据库全量备份（mysqldump）→ 本机备份 + 异地备份（如配置）
+- 上传图片增量拷贝（Desktop\\yawei\\01-ERP\\yawei-uploads → 同目录 uploads\）
 - 配置文件 + JWT 密钥（ai_config / photo_config / jwt_secret）→ 同目录 config\
-- 保留策略：ERP 目录下超过 30 天的日期目录自动清理
-- 由 Windows 计划任务每天 17:30 触发（也可手动运行）
+- 保留策略：超过 30 天的日期目录自动清理
+- 异地备份：OFF_SITE_BACKUP_DIR 环境变量指定目标（U盘/网络盘/共享文件夹），
+  未设置时尝试读 db_secret.env 的 OFF_SITE_BACKUP_DIR，再没有则跳过（只做本机备份）
+- 数据库密码：从 db_secret.env 读 DB_PASSWORD
 
 退出码：0=成功 1=失败。输出一行摘要供计划任务日志。
 """
+import os
 import shutil
 import subprocess
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# ========== 路径 ==========
-MYSQLDUMP = r"C:\mysql\8.0.28\bin\mysqldump.exe"
-MYSQL = r"C:\mysql\8.0.28\bin\mysql.exe"
+# ========== 路径（新电脑 2026-08-02 适配） ==========
+ROOT = Path(r"C:\Users\17815\Desktop\yawei\01-ERP")
+MYSQLDUMP = str(ROOT / "mysql" / "8.0.28" / "bin" / "mysqldump.exe")
+MYSQL = str(ROOT / "mysql" / "8.0.28" / "bin" / "mysql.exe")
 DB_NAME = "yawei_erp"
-UPLOADS_DIR = Path(r"I:\yawei-uploads")
-BACKUP_ROOT = Path(r"H:\jxc系统备份\ERP")
+UPLOADS_DIR = ROOT / "yawei-uploads"
+BACKUP_ROOT = ROOT / "yawei-erp-java" / "backup" / "daily"   # 本机备份（项目下）
 CONFIG_FILES = [
-    Path(r"I:\yawei-erp\ai_config.json"),      # AI 报价配置（含密钥）
-    Path(r"I:\yawei-erp\photo_config.json"),   # 拍照识别配置（含密钥）
-    Path(r"I:\yawei-erp\jwt_secret.txt"),      # JWT 签名密钥（丢了全员重登）
-    Path(r"I:\yawei-erp-java\backend\src\main\resources\application.yml"),
+    ROOT / "yawei-erp-config" / "ai_config.json",      # AI 报价配置（含密钥）
+    ROOT / "yawei-erp-config" / "photo_config.json",   # 拍照识别配置（含密钥）
+    ROOT / "yawei-erp-config" / "jwt_secret.txt",      # JWT 签名密钥（丢了全员重登）
+    ROOT / "yawei-erp-config" / "db_secret.env",       # 数据库密码（备份恢复必需）
+    ROOT / "yawei-erp-java" / "backend" / "src" / "main" / "resources" / "application.yml",
 ]
 RETENTION_DAYS = 30
+
+# ========== 数据库密码（从 db_secret.env 读） ==========
+DB_PASSWORD = ""
+try:
+    env_file = ROOT / "yawei-erp-config" / "db_secret.env"
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line.startswith("DB_PASSWORD=") and not line.startswith("#"):
+            DB_PASSWORD = line.split("=", 1)[1].strip()
+except Exception:
+    pass
+DB_AUTH = ["-p" + DB_PASSWORD] if DB_PASSWORD else []
+
+# ========== 异地备份目标 ==========
+OFF_SITE_DIR = os.environ.get("OFF_SITE_BACKUP_DIR", "").strip()
+if not OFF_SITE_DIR:
+    try:
+        env_file = ROOT / "yawei-erp-config" / "db_secret.env"
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("OFF_SITE_BACKUP_DIR=") and not line.startswith("#"):
+                OFF_SITE_DIR = line.split("=", 1)[1].strip()
+                break
+    except Exception:
+        pass
 
 DATE = datetime.now().strftime("%Y%m%d")
 TARGET = BACKUP_ROOT / DATE
@@ -41,55 +71,55 @@ def run(cmd, timeout=600):
                           encoding="utf-8", errors="replace")
 
 
-def main():
-    steps = []
+def backup_to(dest_root: Path, label: str, steps: list) -> bool:
+    """执行一次完整备份到 dest_root。返回是否成功。"""
     ok = True
-
+    target = dest_root / DATE
+    t_uploads = target / "uploads"
+    t_config = target / "config"
     try:
-        TARGET.mkdir(parents=True, exist_ok=True)
-        TARGET_UPLOADS.mkdir(parents=True, exist_ok=True)
-        TARGET_CONFIG.mkdir(parents=True, exist_ok=True)
+        target.mkdir(parents=True, exist_ok=True)
+        t_uploads.mkdir(parents=True, exist_ok=True)
+        t_config.mkdir(parents=True, exist_ok=True)
 
         # 1. 数据库全量备份
-        sql_file = TARGET / ("yawei_erp_%s.sql" % DATE)
-        p = run([MYSQLDUMP, "-uroot", "--single-transaction", "--routines",
+        sql_file = target / ("yawei_erp_%s.sql" % DATE)
+        p = run([MYSQLDUMP, "-uroot"] + DB_AUTH + ["--single-transaction", "--routines",
                  "--default-character-set=utf8mb4", DB_NAME], timeout=900)
         if p.returncode != 0:
-            steps.append("DB:FAIL(%s)" % (p.stderr or p.stdout)[:120])
+            steps.append(f"{label}DB:FAIL(%s)" % (p.stderr or p.stdout)[:120])
             ok = False
         else:
             sql_file.write_text(p.stdout, encoding="utf-8", errors="replace")
-            steps.append("DB:%s" % human(sql_file.stat().st_size))
+            steps.append(f"{label}DB:%s" % human(sql_file.stat().st_size))
 
-        # 2. 上传图片增量拷贝（/d 只拷比目标新的文件，保留目录结构）
+        # 2. 上传图片增量拷贝
         if UPLOADS_DIR.exists():
-            p = run(["xcopy", str(UPLOADS_DIR), str(TARGET_UPLOADS), "/e", "/d", "/y", "/q"], timeout=1800)
-            # xcopy 退出码 1 = 有文件复制（正常），0 = 无变化
-            steps.append("IMG:%s" % ("OK" if p.returncode in (0, 1) else "FAIL(%s)" % (p.stderr or "")[:100]))
+            p = run(["xcopy", str(UPLOADS_DIR), str(t_uploads), "/e", "/d", "/y", "/q"], timeout=1800)
+            steps.append(f"{label}IMG:%s" % ("OK" if p.returncode in (0, 1) else "FAIL(%s)" % (p.stderr or "")[:100]))
             if p.returncode not in (0, 1):
                 ok = False
         else:
-            steps.append("IMG:SKIP(无上传目录)")
+            steps.append(f"{label}IMG:SKIP")
 
         # 3. 配置文件 + 密钥
         cfg_ok = True
         for f in CONFIG_FILES:
             if f.exists():
                 try:
-                    shutil.copy2(f, TARGET_CONFIG / f.name)
+                    shutil.copy2(f, t_config / f.name)
                 except Exception as e:
                     cfg_ok = False
-                    steps.append("CFG:%s=FAIL(%s)" % (f.name, str(e)[:60]))
-        if cfg_ok:
-            steps.append("CFG:OK(%d个)" % len([f for f in CONFIG_FILES if f.exists()]))
-        else:
+                    steps.append(f"{label}CFG:%s=FAIL(%s)" % (f.name, str(e)[:60]))
+        steps.append(f"{label}CFG:%s" % ("OK" if cfg_ok else "FAIL"))
+        if not cfg_ok:
             ok = False
 
         # 4. 保留策略：清理 30 天前的日期目录
         cutoff = datetime.now() - timedelta(days=RETENTION_DAYS)
         removed = 0
-        if BACKUP_ROOT.exists():
-            for d in BACKUP_ROOT.iterdir():
+        if dest_root.exists():
+            for d in dest_root.iterdir():
                 if d.is_dir() and len(d.name) == 8 and d.name.isdigit():
                     try:
                         d_date = datetime.strptime(d.name, "%Y%m%d")
@@ -98,14 +128,36 @@ def main():
                             removed += 1
                     except ValueError:
                         pass
-        steps.append("RET:清%d" % removed)
-
-        print("YAWEI-DR-BACKUP %s %s exit=%s" % (DATE, " ".join(steps), "OK" if ok else "FAIL"))
-        return 0 if ok else 1
-
+        steps.append(f"{label}RET:清%d" % removed)
+        return ok
     except Exception as e:
-        print("YAWEI-DR-BACKUP %s ERROR %s" % (DATE, str(e)[:200]))
-        return 1
+        steps.append(f"{label}ERROR:%s" % str(e)[:200])
+        return False
+
+
+def main():
+    steps = []
+    ok = True
+
+    # 本机备份
+    ok = backup_to(BACKUP_ROOT, "", steps) and ok
+
+    # 异地备份（如果配置了目标）
+    if OFF_SITE_DIR:
+        off = Path(OFF_SITE_DIR)
+        try:
+            off.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            steps.append(f"OFF-SITE:目标不可用(%s)" % str(e)[:80])
+            ok = False
+        if off.exists():
+            ok = backup_to(off, "OFF:", steps) and ok
+            steps.append("OFF-SITE:到 %s" % OFF_SITE_DIR)
+    else:
+        steps.append("OFF-SITE:未配置(仅本机备份)")
+
+    print("YAWEI-DR-BACKUP %s %s exit=%s" % (DATE, " ".join(steps), "OK" if ok else "FAIL"))
+    return 0 if ok else 1
 
 
 def human(n):

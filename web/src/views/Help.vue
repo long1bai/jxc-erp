@@ -59,10 +59,10 @@
             </div>
 
             <div class="info-table">
-              <div class="info-row"><span class="k">公司</span><span class="v">示例公司</span></div>
-              <div class="info-row"><span class="k">地址</span><span class="v">（公司地址）</span></div>
-              <div class="info-row"><span class="k">电话</span><span class="v">（联系电话）</span></div>
-              <div class="info-row"><span class="k">系统</span><span class="v">本机 http://localhost:8080　局域网 http://192.168.1.88:8080　外网 http://9087hzlk8738.vicp.fun</span></div>
+              <div class="info-row"><span class="k">公司</span><span class="v">{{ company.companyName || '—' }}</span></div>
+              <div class="info-row"><span class="k">地址</span><span class="v">{{ company.address || '—' }}</span></div>
+              <div class="info-row"><span class="k">电话</span><span class="v">{{ company.phone || '—' }}</span></div>
+              <div class="info-row"><span class="k">系统</span><span class="v">本机 http://localhost:8080</span></div>
               <div class="info-row"><span class="k">账号</span><span class="v">admin / admin123</span></div>
             </div>
           </div>
@@ -301,11 +301,21 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import MermaidFlow from '../components/MermaidFlow.vue'
 
 const activeTab = ref('overview')
+
+// 公司信息由后端配置下发（买家可改，帮助页不硬编码）
+const company = ref({ companyName: '', address: '', phone: '' })
+onMounted(() => {
+  import('../api/catalog').then(({ catalogApi }) => {
+    catalogApi.company().then((res) => {
+      if (res?.data) company.value = res.data
+    }).catch(() => {})
+  })
+})
 
 // ===== Mermaid 流程图定义（改文字即改图，比手写 SVG 好维护） =====
 const BIZ_FLOW = `

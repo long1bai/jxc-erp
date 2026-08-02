@@ -84,7 +84,7 @@
 
 - **上传图片目录：`I:\yawei-uploads\`**（报工照片存 `I:\yawei-uploads\work\`，旧日期目录保留）——**已移出 web/public**（vite build 不再复制 189MB 图片，dist 5.2MB）
 - 访问链路：`/uploads/**` → 后端静态映射（WebConfig `file:I:/yawei-uploads/`）；vite dev 走 5173 代理 `/uploads → 8080`（vite.config.js 已配）
-- 后端结构约定：单包平铺（48 文件，4670 行）——**小厂体量保持单包**，不拆分层；命名 XxxController/XxxMapper/实体 一一对应
+- ~~后端结构约定：单包平铺~~ **2026-08-02 已分层重构**（见 6.24）：controller/service/mapper/entity/dto/common/config/security/client/interceptor/util 子包；命名 XxxController/XxxMapper/实体 一一对应
 - 前端：views 按业务域命名；复用 PageHeader/PaginatedTable；HelloWorld 脚手架残留已删
 - 临时脚本归 `scripts/`（test_photo_flow.py/download_mysql.py）；顶层只留 backend/web/docs/db/backup/scripts + README + build_backend.bat
 
@@ -388,3 +388,86 @@
 - **`mvn package` 增量构建会把 target/classes 历史残留全带进 jar**：static 源清空后 jar 里仍残留 75 个旧 index-*.js/css，jar 从 36MB 膨胀到 97MB（60MB 死代码）
 - **必须 `mvn clean package`** + 发布前先清 static（`rm -rf static/assets/* static/*.html`，cp 不删旧文件）
 - 验证：`unzip -l target/*.jar | grep -c 'static/assets/index-.*\.js'` 应为 1
+
+## 6.24 企业化改造：分层重构 + 产品化配置（2026-08-02，新电脑迁移后）
+
+> 从"jxc内部自用"转向"可卖的产品"。三件事：后端分层重构、配置全抽离、数据库加固+异地备份。
+
+### A. 后端分层重构（单包 → 五层）
+
+- **之前**：75 个 Java 文件全平铺在 `com.yawei.erp` 单包（Controller 直接调 Mapper，无 Service 层）
+- **之后**：标准分层
+  ```
+  com.yawei.erp
+  ├── controller/ (33)   # 只做参数绑定 + ApiResponse 包装
+  ├── service/     (5)   # Work/Photo/Finance/PoOrder/Production（复杂模块已抽，CRUD 类后续补）
+  ├── mapper/      (22)  # MyBatis-Plus Mapper
+  ├── entity/      (6)   # Customer/Material/Supplier/User/Warehouse/OperationLog
+  ├── dto/         (4)   # PhotoDtos/FinanceDtos/PoOrderDtos/ProductionDtos（record 聚合类）
+  ├── common/      (5)   # ApiResponse/PageResult/Constants/GlobalExceptionHandler/BaseController
+  ├── config/      (2)   # MybatisPlusConfig/WebConfig
+  ├── security/    (4)   # AuthInterceptor/SessionStore/PasswordUtils/TokenUtils
+  ├── client/      (1)   # DashScopeClient
+  ├── interceptor/ (1)   # OperationLogInterceptor
+  ├── util/        (2)   # SequenceUtil/MoneyUtils
+  └── YaweiErpApplication.java
+  ```
+- **Controller 解耦**（之前互相注入/静态调用）：
+  - `AuthController.extractToken()` 静态方法 → `security/TokenUtils`（4 处调用改）
+  - `OrderController.amount()` 实例方法（被 DeliveryController 注入）→ `util/MoneyUtils`
+- **Service 抽取模式**：业务逻辑整段搬进 @Service，错误返回 `Map.of("error", msg)`，Controller 检查 `containsKey("error")` → fail；DTO record 聚合到 `XxxDtos` final class（Controller/Service 各定义一份会类型不兼容）
+- **坑**：
+  - 编译通过 ≠ 能启动：javac 容忍"import 指向根包但类已移走"（同包/缓存），运行时才炸（WebConfig 旧 import 实例）——必须 `mvn package` + 从 release/ 启动冒烟
+  - **启动方式**：必须从 `backend/release/` 目录启动（Spring Boot 读同目录 config/ 子目录的 application.yml；从 backend/ 启动会用 jar 内置旧 I:/ 路径，SessionStore 的 jwt-secret-file 默认值直接炸）
+  - 备份在 `backup/refactor-backup-20260802/`（重构前源码快照）
+- **e2e 脚本迁路径**：`scripts/e2e_test.py` 的 MYSQL 路径 + out_dir 从旧电脑 I:/ 改为桌面路径（见 6.18 运行方式）
+
+### B. 配置全抽离（卖系统核心）
+
+**1. AI 配置（ai_config.json / photo_config.json，管理员可改）**
+- 模型名读配置文件：`chat_model` / `vision_model`，缺省回退代码默认值
+- 提示词读 `system_prompt`，支持 `{company_name}` 占位符（由 sys_config.company_name 填充）
+- `DashScopeClient.chat()` 增加配置优先/缺省回退逻辑；`AiController` 注入 `CatalogController.CatalogMapper` 拿公司名
+- **换 AI 供应商 = 改 ai_config.json，不改代码**
+
+**2. 公司品牌（sys_config 表）**
+- 新增 `system_name` 键（登录页/侧边栏/顶栏标题），`/api/config/company` 返回（已从 AuthInterceptor 放行，**未登录可访问**——登录页要显示品牌）
+- 前端 Layout/Login/Help/打印模板兜底值全部动态化，硬编码"jxc"清空
+- **改品牌 = UPDATE sys_config，不改代码**
+
+**3. 业务流程参数（sys_config 表，2026-08-02 起支持）**
+- 新建 `SysConfigService`（读 sys_config + 内置默认值回退；`Map.ofEntries` 避免 Map.of 10 对上限）
+- 15 个参数：单号前缀×8（seq_ie/zz/cgdd/th/rcv/pay/inv/po）、默认仓库、物料分类、工号前缀、休息时段×4（break_lunch/dinner_start/end，`getMinutes` 转分钟偏移）
+- 9 个类注入 cfg 字段（Fund/Purchase/PurchaseReturn/Voucher/UserController + Finance/Photo/PoOrder/WorkService）
+- **改单号前缀/休息时段 = UPDATE sys_config，不改代码**（实测：seq_cgdd 改 CG-TEST 后新单号 CG-TEST-20260802-0001）
+
+**4. 部署参数（环境变量，install.bat 一键安装）**
+- 内置+外部 application.yml 全部 `${ERP_XXX:默认值}` 占位符：ERP_PORT/ERP_DB_URL/ERP_DB_USER/ERP_DB_PASSWORD/ERP_UPLOAD_DIR/ERP_MYSQLDUMP/ERP_AI_CONFIG/ERP_PHOTO_CONFIG/ERP_JWT_SECRET/ERP_JWT_EXPIRE_DAYS/ERP_LEGACY_WEB_PUBLIC
+- `scripts/install.bat`（新电脑一键：改 my.ini 路径+端口 → 初始化 → 启动 MySQL → 导库 → 生成配置 → 启后端）；`backend/release/config/application.example.yml` 示例
+- **换端口/数据库密码 = setx 环境变量，不改代码**（实测 ERP_PORT=9090 生效）
+
+### C. 数据库加固 + 异地备份
+
+- **root 密码**：空 → 强密码（`REDACTED_PASSWORD`），存 `yawei-erp-config/db_secret.env`（不进 git/迁移包）
+- **连锁改动（漏一个就挂）**：
+  - application.yml（内置+外部）`spring.datasource.password`
+  - `BackupController` mysqldump 加 `-p`（@Value 读 spring.datasource.password）
+  - `dr_backup.py` 从 db_secret.env 读 DB_PASSWORD
+  - `e2e_test.py` / `dr_restore_drill.py` 的 mysql 调用带 `-p`（DB_PASS_REF）
+- **异地备份**：`dr_backup.py` 支持 `OFF_SITE_BACKUP_DIR`（环境变量或 db_secret.env），本机 backup/daily + 异地双份，30 天保留。本机只有 C 盘单分区，模拟异地 `C:\erp-offsite-backup` 演示；真异地（U盘/网络盘/共享文件夹）改配置即用
+- 备份计划任务 `YaweiERP_DailyBackup` 每日 17:30 仍有效
+
+### D. 系统配置页（管理员可视化配置）
+
+- **后端** `ConfigController`（`/api/config`，仅 admin 角色——已在 6.21 的 AuthInterceptor 管理白名单内）：
+  - `GET /api/config/all` → 全部 sys_config（key/value/remark）
+  - `PUT /api/config` → 批量保存（**KNOWN_KEYS 白名单 19 键防注入**，未知键跳过）
+  - `GET /api/config/ai` → 读 ai_config.json，**api_key 脱敏只显后 4 位**（api_key_set 标记）
+  - `PUT /api/config/ai` → 写 ai_config.json（api_key 传 `****` 占位则保留旧值）
+- **CatalogMapper 新增**：allConfig / configExists / upsertConfig（@Insert ON DUPLICATE KEY UPDATE）
+- **前端** `SystemConfig.vue` 三个标签页：🏢 公司信息 / ⚙️ 业务参数 / 🤖 AI 配置；路由 `system/config`（admin）；菜单"系统→系统配置"（仅 admin，MENU_TREE 加 MenuNode）
+- 配置保存**立即生效**（登录页/侧边栏标题、新单据单号等不用重启）
+
+### 相关文档
+- 分层重构细节：`references/backend-layering-refactor.md`（yawei-erp-system 技能）
+- 产品化改造细节：`references/productization-ai-config.md`
