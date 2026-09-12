@@ -16,6 +16,11 @@
         <template #prefix><el-icon><Search /></el-icon></template>
       </el-input>
       <el-button type="primary" size="small" @click="load(1)">搜索</el-button>
+      <div class="flex-1"></div>
+      <el-button size="small" @click="fieldVisible = true">字段设置</el-button>
+      <el-button size="small" @click="importVisible = true">导入</el-button>
+      <el-button size="small" @click="downloadTemplate">下载模板</el-button>
+      <el-button size="small" type="success" @click="exportExcel">导出 Excel</el-button>
     </div>
 
     <!-- 列表 -->
@@ -28,8 +33,13 @@
         <template #default="{ row }">{{ Number(row.total_amount || 0).toLocaleString() }}</template>
       </el-table-column>
       <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
-      <el-table-column label="操作" width="100" fixed="right">
+      <el-table-column v-for="f in fieldDefs" :key="f.fieldKey" :label="f.fieldName"
+                       min-width="100" show-overflow-tooltip>
+        <template #default="{ row }">{{ extVal(row, f.fieldKey) }}</template>
+      </el-table-column>
+      <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
+          <el-button link type="primary" size="small" @click.stop="printRow(row)">打印</el-button>
           <el-button link type="danger" size="small" @click.stop="remove(row)">删除</el-button>
         </template>
       </el-table-column>
@@ -48,6 +58,12 @@
           <div class="m-row"><span>总数量</span><b>{{ row.total_quantity }}</b></div>
           <div class="m-row"><span>总金额</span><b>{{ '￥' + (row.total_amount ?? 0) }}</b></div>
           <div class="m-row"><span>备注</span><b>{{ row.remark }}</b></div>
+          <div class="m-row" v-for="f in fieldDefs" :key="f.fieldKey">
+            <span>{{ f.fieldName }}</span><b>{{ extVal(row, f.fieldKey) }}</b>
+          </div>
+          <div class="m-card-actions">
+            <el-button link type="primary" size="small" @click.stop="printRow(row)">打印</el-button>
+          </div>
         </div>
       </div>
       <div v-if="!items.length" class="m-empty">暂无数据</div>
@@ -82,12 +98,39 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <!-- 项目挂靠（开关开启时显示） -->
+        <el-row v-if="projectsOn" :gutter="10">
+          <el-col :span="12">
+            <el-form-item label="所属项目">
+              <el-select v-model="createForm.projectId" filterable clearable placeholder="选择项目（可空）" style="width: 100%">
+                <el-option v-for="p in projects" :key="p.id"
+                           :label="p.code ? p.name + '（' + p.code + '）' : p.name" :value="p.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-row :gutter="10">
           <el-col :span="12">
             <el-form-item label="经手人"><el-input v-model="createForm.handler" placeholder="经办人姓名（用于按人统计）" /></el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="备注"><el-input v-model="createForm.remark" /></el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 动态字段（单据能力中心） -->
+        <el-row v-if="fieldDefs.length" :gutter="10">
+          <el-col v-for="f in fieldDefs" :key="f.fieldKey" :span="8">
+            <el-form-item :label="f.fieldName">
+              <el-input v-if="f.fieldType === 'text'" v-model="createForm.ext[f.fieldKey]" placeholder="可填" />
+              <el-input-number v-else-if="f.fieldType === 'number'" v-model="createForm.ext[f.fieldKey]"
+                               :controls="false" style="width: 100%" />
+              <el-date-picker v-else-if="f.fieldType === 'date'" v-model="createForm.ext[f.fieldKey]"
+                              type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+              <el-select v-else v-model="createForm.ext[f.fieldKey]" clearable placeholder="选择" style="width: 100%">
+                <el-option v-for="o in f.options" :key="o" :label="o" :value="o" />
+              </el-select>
+            </el-form-item>
           </el-col>
         </el-row>
 
@@ -100,6 +143,11 @@
                   <el-button @click="openMaterialPicker(row)"><el-icon><Search /></el-icon></el-button>
                 </template>
               </el-input>
+            </template>
+          </el-table-column>
+          <el-table-column label="装配系统" width="120">
+            <template #default="{ row }">
+              <el-input v-model="row.assemblySystem" placeholder="可填" size="small" />
             </template>
           </el-table-column>
           <el-table-column prop="spec" label="规格" width="120" />
@@ -192,14 +240,23 @@
         <div v-if="!detail.items.length" class="m-empty">无明细</div>
       </div>
     </el-dialog>
+
+    <!-- 单据能力中心：字段设置 / 导入 -->
+    <FieldDefDialog v-model="fieldVisible" doc-type="purchase_order" @saved="loadFields" />
+    <ImportDialog v-model="importVisible" doc-type="purchase_order" @reloaded="load" />
   </el-card>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '../utils/request'
 import { tradeApi as api } from '../api/trade'
+import { docApi } from '../api/doc'
+import FieldDefDialog from '../components/FieldDefDialog.vue'
+import ImportDialog from '../components/ImportDialog.vue'
 
 const items = ref([])
 const total = ref(0)
@@ -216,8 +273,12 @@ const createRules = {
 window.addEventListener('resize', () => { isMobile.value = window.innerWidth <= 767 })
 const saving = ref(false)
 const suppliers = ref([])
+const warehouses = ref([])
 const createVisible = ref(false)
-const createForm = reactive({ supplierId: null, poDate: '', remark: '', handler: '', items: [] })
+const createForm = reactive({ supplierId: null, poDate: '', remark: '', handler: '', projectId: null, ext: {}, items: [] })
+// 项目模块开关（enable_projects=1 才显示项目下拉 + 拉项目列表）
+const projectsOn = ref(false)
+const projects = ref([])
 const pickerVisible = ref(false)
 const pickerKeyword = ref('')
 const pickerItems = ref([])
@@ -227,6 +288,10 @@ const pickerCurrent = ref(null)
 const pickerTarget = ref(null)  // 当前正在为哪一行选物料
 const detailVisible = ref(false)
 const detail = ref({ main: {}, items: [] })
+const fieldDefs = ref([])
+const fieldVisible = ref(false)
+const importVisible = ref(false)
+const router = useRouter()
 
 const totalAmount = computed(() =>
   createForm.items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
@@ -275,7 +340,7 @@ async function loadWarehouses() {
 }
 
 function newRow() {
-  return { materialId: null, materialName: '', spec: '', unit: '', quantity: 1, unitPrice: 0, amount: 0 }
+  return { materialId: null, materialName: '', spec: '', unit: '', assemblySystem: '', quantity: 1, unitPrice: 0, amount: 0 }
 }
 function addRow() {
   createForm.items.push(newRow())
@@ -285,7 +350,7 @@ function calcRow(row) {
 }
 
 function openCreate() {
-  Object.assign(createForm, { supplierId: null, poDate: today(), remark: '', warehouseId: null, items: [newRow()] })
+  Object.assign(createForm, { supplierId: null, poDate: today(), remark: '', warehouseId: null, projectId: null, ext: {}, items: [newRow()] })
   if (warehouses.value.length) createForm.warehouseId = warehouses.value[0].id
   createVisible.value = true
 }
@@ -300,16 +365,22 @@ async function save() {
   }
   saving.value = true
   try {
+    // 项目名称冗余（显示用）：从项目列表反查，避免前端额外传
+    const proj = projects.value.find((p) => p.id === createForm.projectId)
     await api.createPurchase({
       supplierId: createForm.supplierId,
       poDate: createForm.poDate,
       remark: createForm.remark,
       handler: createForm.handler || '',
       warehouseId: createForm.warehouseId,
+      projectId: createForm.projectId || null,
+      projectName: proj ? proj.name : '',
       items: valid.map((it) => ({
         materialId: it.materialId, materialName: it.materialName, spec: it.spec,
-        unit: it.unit, quantity: Number(it.quantity), unitPrice: Number(it.unitPrice) || 0,
+        unit: it.unit, assemblySystem: it.assemblySystem || '',
+        quantity: Number(it.quantity), unitPrice: Number(it.unitPrice) || 0,
       })),
+      ext: createForm.ext,
     })
     ElMessage.success('入库成功')
     createVisible.value = false
@@ -346,6 +417,50 @@ async function openDetail(row) {
   }
 }
 
+// ===== 单据能力中心：动态字段 / 导入导出 / 打印 =====
+function extVal(row, key) {
+  let ext = {}
+  try { ext = JSON.parse(row.ext_json || '{}') } catch { /* 脏数据容错 */ }
+  return ext[key] ?? ''
+}
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  URL.revokeObjectURL(url)
+  a.remove()
+}
+async function loadFields() {
+  try {
+    const res = await docApi.fields('purchase_order')
+    fieldDefs.value = res.data || []
+  } catch {
+    fieldDefs.value = []
+  }
+}
+function printRow(row) {
+  router.push(`/purchases/print/${row.id}`)
+}
+async function downloadTemplate() {
+  try {
+    const { blob, filename } = await docApi.importTemplate()
+    saveBlob(blob, filename)
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+async function exportExcel() {
+  try {
+    const { blob, filename } = await docApi.exportPurchases({ keyword: keyword.value })
+    saveBlob(blob, filename)
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
 // ===== 物料选择器 =====
 function openMaterialPicker(row) {
   pickerTarget.value = row
@@ -376,16 +491,40 @@ function pickMaterial(row) {
   pickerVisible.value = false
 }
 
+// ===== 项目模块开关：开启才显示项目下拉 =====
+async function loadConfig() {
+  try {
+    const res = await request.get('/config/all')
+    const cfg = {}
+    for (const r of res.data.items || []) cfg[r.config_key] = r.config_value
+    projectsOn.value = cfg.enable_projects === '1'
+    if (projectsOn.value) loadProjects()
+  } catch { /* 忽略 */ }
+}
+async function loadProjects() {
+  try {
+    const res = await request.get('/projects/options')
+    projects.value = res.data.items || []
+  } catch { /* 忽略 */ }
+}
+
 function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
-onMounted(() => { load(1); loadSuppliers(); loadWarehouses() })
+onMounted(() => { load(1); loadSuppliers(); loadWarehouses(); loadConfig(); loadFields() })
 </script>
 
 <style scoped>
 
 
+.search-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+.m-card-actions {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #ebeef5;
+}
 .items-toolbar {
   display: flex;
   justify-content: space-between;

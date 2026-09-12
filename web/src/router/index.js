@@ -5,6 +5,8 @@ import Dashboard from '../views/Dashboard.vue'
 import Customers from '../views/Customers.vue'
 import Suppliers from '../views/Suppliers.vue'
 import Materials from '../views/Materials.vue'
+import Projects from '../views/Projects.vue'
+import ProjectCost from '../views/ProjectCost.vue'
 import Purchases from '../views/Purchases.vue'
 import PurchaseReturns from '../views/PurchaseReturns.vue'
 import Stock from '../views/Stock.vue'
@@ -16,6 +18,7 @@ import Vouchers from '../views/Vouchers.vue'
 import WorkReports from '../views/WorkReports.vue'
 import WorkSettings from '../views/WorkSettings.vue'
 import DeliveryPrint from '../views/DeliveryPrint.vue'
+import PurchasePrint from '../views/PurchasePrint.vue'
 import Bom from '../views/Bom.vue'
 import Warehouse from '../views/Warehouse.vue'
 import Reports from '../views/Reports.vue'
@@ -46,6 +49,7 @@ const router = createRouter({
   routes: [
     { path: '/login', component: Login },
     { path: '/deliveries/print/:id', component: DeliveryPrint, meta: { title: '送货单打印', roles: ['admin'] } },
+    { path: '/purchases/print/:id', component: PurchasePrint, meta: { title: '采购单打印', roles: ['admin', 'boss'] } },
     { path: '/reports/reconciliation-print', component: ReconciliationPrint, meta: { title: '对账单', roles: ['admin', 'boss'] } },
     {
       path: '/',
@@ -79,6 +83,8 @@ const router = createRouter({
         { path: 'base/customers', component: Customers, meta: { title: '客户', roles: ['admin', 'dev'] } },
         { path: 'base/suppliers', component: Suppliers, meta: { title: '供应商', roles: ['admin', 'dev'] } },
         { path: 'base/materials', component: Materials, meta: { title: '物料', roles: ['admin', 'dev'] } },
+        { path: 'base/projects', component: Projects, meta: { title: '项目', roles: ['admin', 'dev'] } },
+        { path: 'project-cost', component: ProjectCost, meta: { title: '项目成本', roles: ['admin', 'dev', 'boss'] } },
         { path: 'base/warehouses', component: Warehouse, meta: { title: '仓库', roles: ['admin', 'dev'] } },
         { path: 'stock/inventory', component: Stock, meta: { title: '库存查询' } },
         { path: 'purchases', component: Purchases, meta: { title: '采购入库', roles: ['admin'] } },

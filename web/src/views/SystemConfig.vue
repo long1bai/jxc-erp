@@ -13,7 +13,7 @@
                   title="修改后立即生效：登录页/侧边栏标题用「系统名称」，打印单抬头用「公司名称」" />
         <el-form :model="companyForm" label-width="110px" style="max-width: 560px">
           <el-form-item label="系统名称">
-            <el-input v-model="companyForm.system_name" placeholder="如：jxc进销存" />
+            <el-input v-model="companyForm.system_name" placeholder="如：进销存系统" />
           </el-form-item>
           <el-form-item label="公司名称">
             <el-input v-model="companyForm.company_name" placeholder="打印抬头/帮助页显示" />

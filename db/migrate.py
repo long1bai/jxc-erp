@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-jxc ERP SQLite → MySQL 数据迁移脚本
-用法: python migrate.py [--host 127.0.0.1] [--port 3306] [--user root] [--password ""] [--db yawei_erp]
+进销存 ERP SQLite → MySQL 数据迁移脚本
+用法: python migrate.py [--host 127.0.0.1] [--port 3306] [--user root] [--password ""] [--db jxc_erp]
 """
 import sqlite3
 import sys
 import time
 
-SQLITE_DB = r"I:\yawei-erp\yawei_erp.db"
+SQLITE_DB = r"I:\erp-server\jxc_erp.db"
 
 # SQLite 表名 → MySQL 表名（如有不同）
 TABLE_MAP = {"sequence": "sequences"}
@@ -51,7 +51,7 @@ def main():
 
     dst = pymysql.connect(
         host="127.0.0.1", port=3306, user="root", password="",
-        database="yawei_erp", charset="utf8mb4", autocommit=False,
+        database="jxc_erp", charset="utf8mb4", autocommit=False,
     )
     cur = dst.cursor()
 
@@ -75,7 +75,7 @@ def main():
         # MySQL 目标表列（交集，避免 SQLite 多出的列导致报错）
         cur.execute(
             "SELECT COLUMN_NAME FROM information_schema.COLUMNS "
-            "WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s", ("yawei_erp", mt))
+            "WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s", ("jxc_erp", mt))
         dst_cols = {r[0] for r in cur.fetchall()}
         cols = [c for c in src_cols if c in dst_cols]
         if not cols:

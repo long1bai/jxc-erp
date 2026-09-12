@@ -10,7 +10,7 @@
     </template>
 
     <el-alert type="info" :closable="false" class="mb">
-      使用 mysqldump 全量备份数据库，备份文件保存在 I:\yawei-erp-java\backup\ 目录，建议定期备份。
+      使用 mysqldump 全量备份数据库，备份文件保存在服务器备份目录，建议定期备份。
     </el-alert>
 
     <el-table :data="items" size="small" stripe v-loading="loading" v-if="!isMobile">

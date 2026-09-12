@@ -7,20 +7,20 @@ server:
 
 # ===== 业务路径配置（环境变量优先，未设置用默认；买家部署改环境变量即可）=====
 app:
-  upload-dir: ${ERP_UPLOAD_DIR:I:/yawei-uploads}          # 上传文件根目录（报工图片 /uploads/** 静态映射）
-  backup-dir: ${ERP_BACKUP_DIR:I:/yawei-erp-java/backup}  # 数据库备份目录
+  upload-dir: ${ERP_UPLOAD_DIR:./uploads}          # 上传文件根目录（报工图片 /uploads/** 静态映射）
+  backup-dir: ${ERP_BACKUP_DIR:./backup}  # 数据库备份目录
   mysqldump-path: ${ERP_MYSQLDUMP:C:/mysql/8.0.28/bin/mysqldump.exe}  # mysqldump 可执行文件路径
-  ai-config: ${ERP_AI_CONFIG:I:/yawei-erp/ai_config.json}     # AI 报价助手配置文件
-  photo-config: ${ERP_PHOTO_CONFIG:I:/yawei-erp/photo_config.json}  # 拍照识别配置文件
-  jwt-secret-file: ${ERP_JWT_SECRET:I:/yawei-erp/jwt_secret.txt}  # JWT 签名密钥（不存在自动生成，重启不变；密钥不进 git）
+  ai-config: ${ERP_AI_CONFIG:./config/ai_config.json}     # AI 报价助手配置文件
+  photo-config: ${ERP_PHOTO_CONFIG:./config/photo_config.json}  # 拍照识别配置文件
+  jwt-secret-file: ${ERP_JWT_SECRET:./config/jwt_secret.txt}  # JWT 签名密钥（不存在自动生成，重启不变；密钥不进 git）
   jwt-expire-days: ${ERP_JWT_EXPIRE_DAYS:7}                  # 登录 token 有效期（天）
-  legacy-web-public: ${ERP_LEGACY_WEB_PUBLIC:I:/yawei-erp-java/web/public}  # 旧版上传路径（清理历史文件用，新部署不再产生）
+  legacy-web-public: ${ERP_LEGACY_WEB_PUBLIC:./web/public}  # 旧版上传路径（清理历史文件用，新部署不再产生）
 
 spring:
   datasource:
-    url: ${ERP_DB_URL:jdbc:mysql://127.0.0.1:3306/yawei_erp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    url: ${ERP_DB_URL:jdbc:mysql://127.0.0.1:3306/jxc_erp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${ERP_DB_USER:root}
-    password: ${ERP_DB_PASSWORD:REDACTED_PASSWORD}
+    password: ${ERP_DB_PASSWORD:}   # 数据库密码：本机在 backend/release/config/application.yml 或环境变量里配，不入库
     driver-class-name: com.mysql.cj.jdbc.Driver
   servlet:
     multipart:
