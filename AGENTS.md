@@ -4,10 +4,10 @@
 
 ## 项目定位
 
-jxc进销存 v2：进销存+生产报工的 ERP 系统。**原为jxc公司内部用，2026-08-02 起转向"可卖的产品"**——公司名/系统名/单号前缀/休息时段/AI 供应商全部可配置（sys_config 表 + ai_config.json + 环境变量），管理员在"系统→系统配置"页可视化修改。局域网部署，实用优先。唯一开发者=老板本人，通过 AI（Hermes）协作开发。所有功能**实测通过才交付**。
+工厂生产经营一体化管理系统 v2：进销存 + 生产报工 + 财务的轻量 ERP（MRP 取向）。**原为进销存公司内部用，2026-08-02 起转向"可卖的产品"**——公司名/系统名/单号前缀/休息时段/AI 供应商全部可配置（sys_config 表 + ai_config.json + 环境变量），管理员在"系统→系统配置"页可视化修改。局域网部署，实用优先。唯一开发者=老板本人，通过 AI（Hermes）协作开发。所有功能**实测通过才交付**。
 
 - v2（本仓库）：Java 21 + Spring Boot 4.1 + MyBatis-Plus + MySQL 8 + Vite/Vue3/Element Plus，8080 一体部署
-- v1（旧版停用）：`I:\yawei-erp`，FastAPI + SQLite，8000 端口——仅数据核验参考
+- v1（旧版停用）：`I:\erp-server`，FastAPI + SQLite，8000 端口——仅数据核验参考
 
 ## 技术栈与目录
 
@@ -16,9 +16,9 @@ backend/   Spring Boot 4.1 + MyBatis-Plus（注解 SQL 为主），分层：cont
 web/       Vue 3 + Vite + Element Plus + Pinia（Element Plus 中文文档为准）
 docs/      01产品 02架构 03后端 04前端 05API 06数据库 07功能 08开发备忘 09运维 10AI
 scripts/   e2e_test.py（180项回归）+ stress_test.py（11项压测）—— 交付前必跑
-db/        init.sql 建表；生产库 yawei_erp（root 密码见 yawei-erp-config/db_secret.env）
+db/        init.sql 建表；生产库 jxc_erp（root 密码见 config/db_secret.env）
 backup/    数据库备份（gitignore）；backup/daily/ 容灾日备份 + 异地（OFF_SITE_BACKUP_DIR）
-yawei-erp-config/  ai_config.json（AI 供应商/模型/提示词）+ photo_config.json + jwt_secret.txt + db_secret.env（数据库密码）
+config/  ai_config.json（AI 供应商/模型/提示词）+ photo_config.json + jwt_secret.txt + db_secret.env（数据库密码）
 ```
 
 ## 必读文档（按优先级）
@@ -28,7 +28,7 @@ yawei-erp-config/  ai_config.json（AI 供应商/模型/提示词）+ photo_conf
 3. **docs/09-ops.md** —— 运维手册（启动/停止/备份/故障速查）
 4. **docs/10-ai.md** —— AI 功能（报价助手/拍照识别）配置与排障
 5. **docs/test-reports/README.md** —— 测试资产用法
-6. 技能 `yawei-erp-system`（Hermes 侧）—— 完整配方（启动/迁移/UI/报工/财务等 references/）
+6. 技能 `erp-server-system`（Hermes 侧）—— 完整配方（启动/迁移/UI/报工/财务等 references/）
 
 ## 关键业务口径（改逻辑前必懂）
 
@@ -45,7 +45,7 @@ yawei-erp-config/  ai_config.json（AI 供应商/模型/提示词）+ photo_conf
 1. **读上下文**：docs/08-dev-notes.md 关键约定 → 相关模块代码 → 相关技能配方
 2. **写代码**：后端改 Controller/Mapper（注解 SQL），前端改 views/（Element Plus 组件）
 3. **本地验证**：vite 5173 改前端（刷新即生效）；后端 mvn package + java -jar + curl 冒烟
-4. **测试**：`cd /i/yawei-erp-java/scripts && python e2e_test.py`（168 项）+ `python stress_test.py`（11 项）——**交付前必跑，数据自动清理**
+4. **测试**：`cd /i/erp-server/scripts && python e2e_test.py`（168 项）+ `python stress_test.py`（11 项）——**交付前必跑，数据自动清理**
 5. **文档同步**：改了什么、踩了什么坑 → docs/08-dev-notes.md（新功能加 6.x 节）
 6. **提交**：git 按逻辑拆 commit（fix/feat/test/docs）；dev 分支开发 → 验证 → merge main（或 main 直接提交后 dev 快进对齐）
 
@@ -88,12 +88,12 @@ yawei-erp-config/  ai_config.json（AI 供应商/模型/提示词）+ photo_conf
 
 ```bash
 # MySQL（Windows 风格路径！）
-/c/Users/17815/Desktop/yawei/01-ERP/mysql/8.0.28/bin/mysqld.exe --defaults-file='C:/Users/17815/Desktop/yawei/01-ERP/mysql/my.ini'
+/c/Users/17815/Desktop/jxc/01-ERP/mysql/8.0.28/bin/mysqld.exe --defaults-file='C:/Users/17815/Desktop/jxc/01-ERP/mysql/my.ini'
 # 后端（必须从 release/ 目录启动，读外部 config/application.yml）
-cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/backend/release && java -jar ../target/yawei-erp-0.0.1-SNAPSHOT.jar   # curl 轮询 200 就绪
+cd /c/Users/17815/Desktop/jxc/01-ERP/erp-server/backend/release && java -jar ../target/erp-server-0.0.1-SNAPSHOT.jar   # curl 轮询 200 就绪
 # 前端（开发）
-cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/web && npm run dev   # 5173
+cd /c/Users/17815/Desktop/jxc/01-ERP/erp-server/web && npm run dev   # 5173
 # 数据库（root 有密码！）
-/c/Users/17815/Desktop/yawei/01-ERP/mysql/8.0.28/bin/mysql.exe -uroot -p<密码见db_secret.env> yawei_erp
+/c/Users/17815/Desktop/jxc/01-ERP/mysql/8.0.28/bin/mysql.exe -uroot -p<密码见db_secret.env> jxc_erp
 # 停后端：netstat 拿 8080 真实 PID → taskkill /PID <pid> /F（bash 包装 PID 无效）
 ```

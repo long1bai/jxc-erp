@@ -3,7 +3,7 @@
 ## 背景
 
 Java 版最初把"报工登记"做成了管理式表单：点"新建报工"→弹窗填 员工/工序/数量/日期/开始/结束/备注 共 8 个字段 → 保存。
-工人每天最高频的动作变成"打开弹窗、填一堆字段"，体验倒退。旧 Python 版（`I:\yawei-erp\server\templates\work_reports\submit.html`）
+工人每天最高频的动作变成"打开弹窗、填一堆字段"，体验倒退。旧 Python 版（`I:\erp-server\server\templates\work_reports\submit.html`）
 本来就有"开始→计时→结束"的打卡流程，Java 版搬迁时丢了。
 
 **结论：报工登记恢复打卡式，管理功能降级为管理员 tab。**

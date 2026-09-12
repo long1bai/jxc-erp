@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-jxc ERP + Hermes Agent 全量迁移打包脚本（2026-08-01）
-- 目标：把整套系统打包到 H:\yawei-迁移包-<日期>\，新电脑解压即可运行
+进销存 ERP + Hermes Agent 全量迁移打包脚本（2026-08-01）
+- 目标：把整套系统打包到 H:\jxc-迁移包-<日期>\，新电脑解压即可运行
 - 内容：
   1. ERP 源码 + jar（剔除 node_modules/target 缓存，保留可重建）
   2. MySQL 绿色版（C:\mysql 原样搬，免安装——新电脑直接用）
   3. 数据库导出（mysqldump 全库含触发器/序列/视图）
-  4. 上传图片（I:\yawei-uploads）
-  5. 配置/密钥（I:\yawei-erp 下的 jwt_secret/ai_config/photo_config）
+  4. 上传图片（I:\uploads）
+  5. 配置/密钥（I:\erp-server 下的 jwt_secret/ai_config/photo_config）
   6. Hermes Agent 本体 + 数据（config/skills/memories/sessions/cron）
   7. 一键部署脚本（install-erp.bat / install-hermes.bat / 部署说明.md）
 - 用法：python scripts/pack_migration.py
@@ -20,15 +20,15 @@ from datetime import datetime
 
 MYSQL_BIN = r"C:\mysql\8.0.28\bin\mysql.exe"
 MYSQLD = r"C:\mysql\8.0.28\bin\mysqldump.exe"
-ERP_SRC = r"I:\yawei-erp-java"
-ERP_CFG = r"I:\yawei-erp"
-UPLOADS = r"I:\yawei-uploads"
+ERP_SRC = r"I:\erp-server"
+ERP_CFG = r"I:\erp-server"
+UPLOADS = r"I:\uploads"
 MYSQL_DIR = r"C:\mysql"
 HERMES_AGENT = r"C:\Users\Administrator\AppData\Local\hermes\hermes-agent"
 HERMES_DATA = r"C:\Users\Administrator\AppData\Local\hermes"
 
 STAMP = datetime.now().strftime("%Y%m%d")
-DEST = r"H:\yawei-迁移包-%s" % STAMP
+DEST = r"H:\jxc-迁移包-%s" % STAMP
 SKIP_DIRS = {"node_modules", "target", ".venv", "__pycache__", ".pytest_cache",
              "venv", "dist", "coverage", ".mypy_cache", ".ruff_cache"}
 SKIP_FILES = {"*.pyc", ".DS_Store", "Thumbs.db"}
@@ -72,7 +72,7 @@ def copytree_filtered(src, dst, skip=SKIP_DIRS):
 
 
 def main():
-    print("== jxc系统全量迁移打包 ==")
+    print("== 进销存系统全量迁移打包 ==")
     print("目标目录: %s" % DEST)
     if os.path.exists(DEST):
         print("目标已存在，跳过。删除后重跑。")
@@ -81,15 +81,15 @@ def main():
 
     # ---------- 1. ERP 源码 + jar ----------
     print("\n[1/7] 打包 ERP 源码...")
-    n = copytree_filtered(ERP_SRC, os.path.join(DEST, "01-ERP", "yawei-erp-java"))
-    print("  文件 %d 个 (%s)" % (n, human(csize(os.path.join(DEST, "01-ERP", "yawei-erp-java")))))
+    n = copytree_filtered(ERP_SRC, os.path.join(DEST, "01-ERP", "erp-server"))
+    print("  文件 %d 个 (%s)" % (n, human(csize(os.path.join(DEST, "01-ERP", "erp-server")))))
 
     # jar 单独放（防止 target 被跳过）
-    jar_src = os.path.join(ERP_SRC, "backend", "target", "yawei-erp-0.0.1-SNAPSHOT.jar")
+    jar_src = os.path.join(ERP_SRC, "backend", "target", "erp-server-0.0.1-SNAPSHOT.jar")
     if os.path.exists(jar_src):
-        jar_dst_dir = os.path.join(DEST, "01-ERP", "yawei-erp-java", "backend", "release")
+        jar_dst_dir = os.path.join(DEST, "01-ERP", "erp-server", "backend", "release")
         os.makedirs(jar_dst_dir, exist_ok=True)
-        shutil.copy2(jar_src, os.path.join(jar_dst_dir, "yawei-erp-0.0.1-SNAPSHOT.jar"))
+        shutil.copy2(jar_src, os.path.join(jar_dst_dir, "erp-server-0.0.1-SNAPSHOT.jar"))
         print("  jar 已复制到 backend/release/")
 
     # ---------- 2. MySQL 绿色版 ----------
@@ -103,9 +103,9 @@ def main():
     print("[3/7] 导出数据库...")
     db_dir = os.path.join(DEST, "01-ERP", "database")
     os.makedirs(db_dir, exist_ok=True)
-    sql_path = os.path.join(db_dir, "yawei_erp_full.sql")
+    sql_path = os.path.join(db_dir, "jxc_erp_full.sql")
     p = subprocess.run([MYSQLD, "-uroot", "--routines", "--triggers",
-                        "--single-transaction", "--databases", "yawei_erp"],
+                        "--single-transaction", "--databases", "jxc_erp"],
                        capture_output=True, timeout=300)
     if p.returncode != 0:
         print("  mysqldump 失败: %s" % p.stderr.decode("gbk", errors="replace")[:200])
@@ -116,13 +116,13 @@ def main():
 
     # ---------- 4. 上传图片 ----------
     print("[4/7] 打包上传图片...")
-    n = copytree_filtered(UPLOADS, os.path.join(DEST, "01-ERP", "yawei-uploads"),
+    n = copytree_filtered(UPLOADS, os.path.join(DEST, "01-ERP", "uploads"),
                           SKIP_DIRS - {"target"})
-    print("  文件 %d 个 (%s)" % (n, human(csize(os.path.join(DEST, "01-ERP", "yawei-uploads")))))
+    print("  文件 %d 个 (%s)" % (n, human(csize(os.path.join(DEST, "01-ERP", "uploads")))))
 
     # ---------- 5. 配置/密钥 ----------
     print("[5/7] 打包配置/密钥...")
-    cfg_dst = os.path.join(DEST, "01-ERP", "yawei-erp-config")
+    cfg_dst = os.path.join(DEST, "01-ERP", "config")
     os.makedirs(cfg_dst, exist_ok=True)
     for f in os.listdir(ERP_CFG):
         fp = os.path.join(ERP_CFG, f)
@@ -176,8 +176,8 @@ def main():
 
 
 INSTALL_ERP_BAT = """@echo off
-rem ============ jxc ERP 一键部署（新电脑）============
-rem 前提：把整个迁移包放到 D:\\yawei（或任意盘根目录）
+rem ============ 进销存 ERP 一键部署（新电脑）============
+rem 前提：把整个迁移包放到 D:\\jxc（或任意盘根目录）
 set ROOT=%~dp0..
 set MYSQL=%ROOT%\\01-ERP\\mysql\\8.0.28\\bin\\mysqld.exe
 set MYSQL_INI=%ROOT%\\01-ERP\\mysql\\my.ini
@@ -192,10 +192,10 @@ start "" /b "%MYSQL%" --defaults-file="%MYSQL_INI%"
 ping -n 6 127.0.0.1 >nul
 
 echo [3/4] 导入数据库...
-"%ROOT%\\01-ERP\\mysql\\8.0.28\\bin\\mysql.exe" -uroot < "%ROOT%\\01-ERP\\database\\yawei_erp_full.sql"
+"%ROOT%\\01-ERP\\mysql\\8.0.28\\bin\\mysql.exe" -uroot < "%ROOT%\\01-ERP\\database\\jxc_erp_full.sql"
 
 echo [4/4] 启动 ERP 后端（8080）...
-start "" /b java -jar "%ROOT%\\01-ERP\\yawei-erp-java\\backend\\release\\yawei-erp-0.0.1-SNAPSHOT.jar"
+start "" /b java -jar "%ROOT%\\01-ERP\\erp-server\\backend\\release\\erp-server-0.0.1-SNAPSHOT.jar"
 
 echo 部署完成！访问 http://localhost:8080 （局域网用本机IP:8080）
 pause
@@ -223,7 +223,7 @@ echo 完成！新终端运行 hermes 即可。
 pause
 """
 
-DEPLOY_README = """# jxc系统迁移部署说明（2026-08-01 打包）
+DEPLOY_README = """# 进销存系统迁移部署说明（2026-08-01 打包）
 
 ## 包内容
 - 01-ERP/：ERP 系统（源码 + jar + MySQL 绿色版 + 数据库 + 图片 + 配置）
@@ -232,7 +232,7 @@ DEPLOY_README = """# jxc系统迁移部署说明（2026-08-01 打包）
 
 ## 新电脑部署 ERP（10 分钟）
 ### 前提：装 Java 21
-1. 把整个迁移包复制到新电脑（建议 D:\\yawei）
+1. 把整个迁移包复制到新电脑（建议 D:\\jxc）
 2. 双击 03-部署\\install-erp.bat
 3. 自动完成：初始化 MySQL → 启动 → 导入数据 → 启动后端
 4. 浏览器访问 http://localhost:8080 （admin/admin123）
@@ -245,9 +245,9 @@ mysql\\8.0.28\\bin\\mysqld.exe --initialize-insecure --basedir=mysql\\8.0.28 --d
 # 2. 启动（my.ini 需改 basedir/datadir 路径为实际位置）
 mysql\\8.0.28\\bin\\mysqld.exe --defaults-file=mysql\\my.ini
 # 3. 导入数据
-mysql\\8.0.28\\bin\\mysql.exe -uroot < database\\yawei_erp_full.sql
+mysql\\8.0.28\\bin\\mysql.exe -uroot < database\\jxc_erp_full.sql
 # 4. 启动后端
-java -jar yawei-erp-java\\backend\\release\\yawei-erp-0.0.1-SNAPSHOT.jar
+java -jar erp-server\\backend\\release\\erp-server-0.0.1-SNAPSHOT.jar
 ```
 
 ## 新电脑部署 Hermes

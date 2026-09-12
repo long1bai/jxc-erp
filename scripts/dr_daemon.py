@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""
-jxc ERP 备份守护进程（2026-08-01 新增，容灾配套）
+r"""
+进销存 ERP 备份守护进程（2026-08-01 新增，容灾配套）
 - 常驻后台（启动文件夹 vbs 拉起），每天 17:30 触发 dr_backup.py
-- PID 锁防重复实例：锁文件 I:\yawei-erp-java\scripts\.dr_daemon.lock
+- PID 锁防重复实例：锁文件 C:\Users\17815\Desktop\jxc\01-ERP\erp-server\scripts\.dr_daemon.lock
 - 电脑休眠/关机期间错过的备份：开机后 10 分钟内补跑（startup catch-up）
-- 日志：I:\yawei-erp-java\scripts\dr_daemon.log（追加）
+- 日志：C:\Users\17815\Desktop\jxc\01-ERP\erp-server\scripts\dr_daemon.log（追加）
 """
 import os
 import subprocess

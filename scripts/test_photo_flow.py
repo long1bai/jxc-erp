@@ -22,7 +22,7 @@ token = tok["data"]["token"]
 print("登录 OK")
 
 # 1. 识别一张真实送货单
-img_path = sys.argv[1] if len(sys.argv) > 1 else r"I:\yawei-erp\uploads\photo_0f1d117e1f78.jpg"
+img_path = sys.argv[1] if len(sys.argv) > 1 else r"I:\erp-server\uploads\photo_0f1d117e1f78.jpg"
 with open(img_path, "rb") as f:
     b64 = base64.b64encode(f.read()).decode()
 print("识别图片:", img_path)

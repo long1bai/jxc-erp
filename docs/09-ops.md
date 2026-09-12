@@ -1,7 +1,7 @@
-# 运维文档（jxc电子 ERP v2）
+# 运维文档（工厂生产经营一体化管理系统 v2）
 
 > 面向唯一开发者（小亚）的日常运维手册。覆盖：启动/停止、备份/恢复、日志、故障速查、升级流程。
-> 深度排障案例与实踩坑：见 `08-dev-notes.md`；技能配方 `yawei-erp-system`（references/startup-and-run.md）。
+> 深度排障案例与实踩坑：见 `08-dev-notes.md`；技能配方 `erp-server-system`（references/startup-and-run.md）。
 
 ## 1. 系统拓扑与端口地图
 
@@ -13,19 +13,20 @@
                                   │
                       ┌───────────┼───────────┐
                       ▼           ▼           ▼
-                 MySQL 3306     vite 5173    I:\yawei-uploads\
-                 (yawei_erp)    (开发用)      (上传图片)
+                 MySQL 3306     vite 5173    I:\uploads\
+                 (jxc_erp)    (开发用)      (上传图片)
 ```
 
 | 端口 | 服务 | 说明 |
 |---|---|---|
-| 3306 | MySQL 8 | 生产库 `yawei_erp`，root 无密码（内网小厂） |
-| 8080 | 后端 jar | 一体部署：页面+API+图片同一端口 |
+| 3306 | MySQL 8 | **双库**：`jxc_erp`（脱敏空壳）+ `yawei_erp`（真实业务数据，见 3.5）；root 密码见 `config/db_secret.env` |
+| 8080 | 后端 jar | 空壳实例（连 `jxc_erp`）——一体部署：页面+API+图片同一端口 |
+| 8081 | 后端 jar | 真实数据实例（连 `yawei_erp`），与 8080 可同时运行（见 3.5） |
 | 5173 | vite dev | 仅开发调试用（proxy /api、/uploads → 8080） |
-| 8000 | Python v1 | 旧 ERP（I:\yawei-erp，仍在用，数据口径需对照核验） |
+| 8000 | Python v1 | 旧 ERP（I:\erp-server，仍在用，数据口径需对照核验） |
 
 - 外网访问：花生壳 `9087hzlk8738.vicp.fun` → 映射到本机 8080
-- 上传目录：`I:\yawei-uploads\`（报工图片 `work\`），代码通过 `WebConfig.addResourceHandlers` 映射 `/uploads/**`
+- 上传目录：`I:\uploads\`（报工图片 `work\`），代码通过 `WebConfig.addResourceHandlers` 映射 `/uploads/**`
 
 ## 2. 启动 / 停止 / 重启
 
@@ -43,7 +44,7 @@ netstat -ano | grep ':3306'
 ### 2.2 后端（8080）
 
 ```bash
-cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/backend/release && java -jar ../target/yawei-erp-0.0.1-SNAPSHOT.jar
+cd /c/Users/17815/Desktop/jxc/01-ERP/erp-server/backend/release && java -jar ../target/erp-server-0.0.1-SNAPSHOT.jar
 # 就绪验证（curl 轮询 200，约 1-4 秒）
 curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/
 ```
@@ -59,7 +60,7 @@ MSYS_NO_PATHCONV=1 taskkill /PID $PID /F
 **构建**（改动后端代码后）：
 
 ```bash
-powershell -NoProfile -Command "& 'C:\maven\apache-maven-3.9.9\bin\mvn.cmd' -f 'I:\yawei-erp-java\backend\pom.xml' -DskipTests package -q"
+powershell -NoProfile -Command "& 'C:\maven\apache-maven-3.9.9\bin\mvn.cmd' -f 'I:\erp-server\backend\pom.xml' -DskipTests package -q"
 ```
 
 **Hikari 连接池懒加载**：后端可先于 MySQL 启动；MySQL 起来后第一次 DB 请求自动恢复，**不用重启后端**。
@@ -67,7 +68,7 @@ powershell -NoProfile -Command "& 'C:\maven\apache-maven-3.9.9\bin\mvn.cmd' -f '
 ### 2.3 前端 vite（仅开发）
 
 ```bash
-cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/web && npm run dev   # 5173
+cd /c/Users/17815/Desktop/jxc/01-ERP/erp-server/web && npm run dev   # 5173
 ```
 
 - 改前端源码：5173 普通刷新生效；**8080 部署需重新 build + 后端 jar 内置静态资源**
@@ -83,17 +84,17 @@ cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/web && npm run dev   # 517
 
 ### 3.1 数据库备份（最重要）
 
-> 2026-08-02：root 已设密码，所有 mysql/mysqldump 命令需带 `-p<密码>`（密码在 `yawei-erp-config/db_secret.env`）。**推荐直接用容灾脚本（3.3），别手敲 mysqldump**。
+> 2026-08-02：root 已设密码，所有 mysql/mysqldump 命令需带 `-p<密码>`（密码在 `config/db_secret.env`）。**推荐直接用容灾脚本（3.3），别手敲 mysqldump**。
 
 ```bash
 # 全量逻辑备份（带密码）
-/c/Users/17815/Desktop/yawei/01-ERP/mysql/8.0.28/bin/mysqldump.exe -uroot -pREDACTED_PASSWORD yawei_erp > backup/yawei_erp_$(date +%Y%m%d).sql
+/c/Users/17815/Desktop/jxc/01-ERP/mysql/8.0.28/bin/mysqldump.exe -uroot -p"$ERP_DB_PASSWORD" jxc_erp > backup/jxc_erp_$(date +%Y%m%d).sql
 # 或仅数据（不含建表）
-/c/Users/17815/Desktop/yawei/01-ERP/mysql/8.0.28/bin/mysqldump.exe -uroot -pREDACTED_PASSWORD yawei_erp --no-create-info > backup/yawei_erp_data_$(date +%Y%m%d).sql
+/c/Users/17815/Desktop/jxc/01-ERP/mysql/8.0.28/bin/mysqldump.exe -uroot -p"$ERP_DB_PASSWORD" jxc_erp --no-create-info > backup/jxc_erp_data_$(date +%Y%m%d).sql
 ```
 
 - 备份目录：`backup/daily/YYYYMMDD/`（容灾脚本自动建；旧 `backup/` 根目录保留历史文件）
-- 上传图片单独备份：`yawei-uploads\` 整个目录拷走（容灾脚本自动做）
+- 上传图片单独备份：`uploads\` 整个目录拷走（容灾脚本自动做）
 
 ### 3.2 恢复（⚠️ 必读）
 
@@ -101,8 +102,8 @@ cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/web && npm run dev   # 517
 
 ```bash
 # 建临时库演练
-/c/mysql/8.0.28/bin/mysql.exe -uroot -e "CREATE DATABASE yawei_erp_restore_test CHARACTER SET utf8mb4;"
-/c/mysql/8.0.28/bin/mysql.exe -uroot yawei_erp_restore_test < backup/yawei_erp_YYYYMMDD.sql
+/c/mysql/8.0.28/bin/mysql.exe -uroot -e "CREATE DATABASE jxc_erp_restore_test CHARACTER SET utf8mb4;"
+/c/mysql/8.0.28/bin/mysql.exe -uroot jxc_erp_restore_test < backup/jxc_erp_YYYYMMDD.sql
 # 对比验证后再决定是否覆盖真实库
 ```
 
@@ -115,9 +116,9 @@ cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/web && npm run dev   # 517
 ```
 I 盘（系统）                    H 盘（容灾，异地）
 ┌─────────────────┐            ┌──────────────────────┐
-│ MySQL 3306       │            │ H:\jxc系统备份\ERP\    │
+│ MySQL 3306       │            │ H:\进销存系统备份\ERP\    │
 │ 后端 jar 8080    │─ 17:30 ──► │  YYYYMMDD\           │
-│ I:\yawei-uploads │  自动备份   │   yawei_erp_*.sql    │
+│ I:\uploads │  自动备份   │   jxc_erp_*.sql    │
 │ 配置/密钥         │            │   uploads\（图片增量） │
 └─────────────────┘            │   config\（密钥等）   │
                                └──────────────────────┘
@@ -125,16 +126,16 @@ I 盘（系统）                    H 盘（容灾，异地）
 
 | 组件 | 脚本 | 作用 |
 |---|---|---|
-| 备份执行 | `scripts/dr_backup.py` | mysqldump 全库（带密码）+ 图片增量拷贝 + 配置文件/密钥 → 本机 backup/daily + **异地（如配置）**，保留 30 天自动清理 |
+| 备份执行 | `scripts/dr_backup.py` | mysqldump **双库**（`jxc_erp` + `yawei_erp`，2026-09-12 起）+ 图片增量拷贝 + 配置文件/密钥 → 本机 backup/daily + **异地（如配置）**，保留 30 天自动清理 |
 | 备份调度 | `scripts/dr_daemon.py` | 常驻守护，每天 17:30 触发备份；**开机后 10 分钟内补跑**（断电错过时间也能补）；PID 锁防重复 |
 | 开机自启 | 启动文件夹 `启动ERP.vbs` | 登录后自动拉起 MySQL + 后端 jar + 备份守护（幂等：已在跑不重复） |
 | 恢复演练 | `scripts/dr_restore_drill.py` | 取最新备份 → 临时库恢复 → 表数/关键表行数冒烟 → 清理，验证"备份真能恢复" |
 
-**手动触发**：`python C:\Users\17815\Desktop\yawei\01-ERP\yawei-erp-java\scripts\dr_backup.py`
-**演练**：`python C:\Users\17815\Desktop\yawei\01-ERP\yawei-erp-java\scripts\dr_restore_drill.py`（输出 DRILL RESULT: PASS/FAIL）
-**守护日志**：`C:\Users\17815\Desktop\yawei\01-ERP\yawei-erp-java\scripts\dr_daemon.log`
+**手动触发**：`python C:\Users\17815\Desktop\jxc\01-ERP\erp-server\scripts\dr_backup.py`
+**演练**：`python C:\Users\17815\Desktop\jxc\01-ERP\erp-server\scripts\dr_restore_drill.py`（输出 DRILL RESULT: PASS/FAIL）
+**守护日志**：`C:\Users\17815\Desktop\jxc\01-ERP\erp-server\scripts\dr_daemon.log`
 
-**异地备份（2026-08-02 新增）**：本机只有 C 盘单分区，异地目标通过 `OFF_SITE_BACKUP_DIR` 配置（环境变量或 `yawei-erp-config/db_secret.env`），指向 U盘/网络盘/共享文件夹；未配置则仅本机备份。当前模拟异地 `C:\erp-offsite-backup` 演示双份备份。
+**异地备份（2026-08-02 新增）**：本机只有 C 盘单分区，异地目标通过 `OFF_SITE_BACKUP_DIR` 配置（环境变量或 `config/db_secret.env`），指向 U盘/网络盘/共享文件夹；未配置则仅本机备份。当前模拟异地 `C:\erp-offsite-backup` 演示双份备份。
 
 **实测记录**：断电模拟（杀全部服务）→ vbs 一键恢复 MySQL+后端+daemon（1 秒就绪）；备份含图片+配置+密钥；演练 46 表恢复、关键表行数与生产一致；2026-08-02 双份备份（本机 + 异地）DB 6.3MB 各自完整。
 
@@ -142,7 +143,46 @@ I 盘（系统）                    H 盘（容灾，异地）
 
 ### 3.4 旧版 H 盘智能备份（v1 时代遗留）
 
-Python v1 时代 `smart_backup.py` 每 30 分钟检查 + 17:00 强制备份到 `H:\jxc系统备份\YYYYMMDD\`。v2 已由 3.3 容灾体系替代（dr_backup.py 每天 17:30 + 开机补跑），本脚本仅供 v1 历史数据参考。
+Python v1 时代 `smart_backup.py` 每 30 分钟检查 + 17:00 强制备份到 `H:\进销存系统备份\YYYYMMDD\`。v2 已由 3.3 容灾体系替代（dr_backup.py 每天 17:30 + 开机补跑），本脚本仅供 v1 历史数据参考。
+
+### 3.5 双库模式：真实业务数据 vs 脱敏空壳（2026-09-12 新增）
+
+**背景**：2026-08-02 项目从"公司自用"转向"可卖的产品"，做了一份脱敏 `jxc_erp`（只剩种子数据）当交付版，**真实业务数据（3.6 万行）连同 22 份快照被打包进百度网盘迁移包**，之后一直没在当前环境。2026-09-12 定位并恢复成独立的 `yawei_erp` 库，两库并存。
+
+| | `jxc_erp`（空壳版） | `yawei_erp`（真实数据） |
+|---|---|---|
+| 用途 | 交付 / 演示 / 功能测试 | 真实业务口径核对 |
+| 端口 | 8080 | 8081 |
+| 物料 / 客户 / 供应商 | 1 / 1 / 1 | 4762 / 322 / 341 |
+| 采购单 / 送货单 | 4 / 0 | 516 / 3468 |
+| 库存流水 / 客户订单 | 38 / 0 | 4526 / 3799 |
+| 合计 | 约 300 行 | **36324 行 / 48 表** |
+| 备份覆盖 | ✅ | ✅（2026-09-12 纳入 dr_backup.py） |
+
+**一键启停**（`scripts/erp_mode.ps1`，幂等，两实例可同时跑、互不干扰）：
+
+```powershell
+pwsh -File scripts\erp_mode.ps1 -Mode status              # 看两实例状态
+pwsh -File scripts\erp_mode.ps1 -Mode real                # 起真实数据 → http://127.0.0.1:8081
+pwsh -File scripts\erp_mode.ps1 -Mode clean               # 起空壳版   → http://127.0.0.1:8080
+pwsh -File scripts\erp_mode.ps1 -Mode stop -Target real   # 停（Target 可 real|clean|all）
+```
+
+脚本通过环境变量 `ERP_PORT` / `ERP_DB_URL` 覆盖配置启动 jar，运行模式记录在 `scripts\.erp_mode.json`。登录仍是 `admin / admin123`。
+
+**恢复记录（可复用）**：
+
+- 最新最全快照：`C:\baidunetdiskdownload\yawei-迁移包-20260801\01-ERP\yawei-erp-java\backup\yawei_erp_20260801_203128.sql`（6.2MB / 46 表 / 36324 行，拍摄于 2026-08-01 20:31）
+- 同目录另有 22 份快照（7/31 ~ 8/1，约每半小时一份）
+- 导入：先 `CREATE DATABASE yawei_erp`，再 `mysql -uroot -p<密码> yawei_erp < 快照.sql`（该 dump **不含** `CREATE DATABASE`/`USE`，不会误伤其他库；含 `sfid()` 函数与 44 个雪花触发器，需 root）
+- 结构对齐：老库比 v2 少 `projects`、`doc_field_defs` 两表 + `purchase_orders.project_id/project_name`、`purchase_items.assembly_system` 三字段，已用 `CREATE TABLE LIKE` + `ALTER TABLE ADD COLUMN` 补齐
+- 保底副本：`C:\erp-import\yawei_erp_restore.sql`
+
+**注意事项**：
+
+- ⚠️ 数据时间切面是 **2026-08-01 20:31**（订单/送货/库存流水的最后一条）。8/2 之后若在别处录过数据，不在这份快照里。
+- 两库共用同一份 `uploads\`（已抽查 40 张报工图片，40/40 存在）和 `config\`。
+- 备份守护每晚 17:30 会同时导出两库，日志里看 `DB[jxc_erp]:xxx DB[yawei_erp]:6.2MB` 即为正常。
 
 ## 4. 日志体系
 
@@ -151,7 +191,7 @@ Python v1 时代 `smart_backup.py` 每 30 分钟检查 + 17:00 强制备份到 `
 | 后端运行 | 后端进程 stdout（nohup/后台会话） | INFO 级 SQL、请求、启动信息 |
 | 应用错误 | `~/.hermes/logs/errors.log`（Hermes 侧） | 后端抛错（需接入日志文件时才可见） |
 | 操作审计 | `operation_logs` 表（系统菜单「操作日志」页） | 所有写操作 + 登录，自动记录 |
-| v1 日志 | `I:\yawei-erp\logs\` | app/access/error/api.log |
+| v1 日志 | `I:\erp-server\logs\` | app/access/error/api.log |
 
 后端日志开关：`backend/src/main/resources/application.yml` 的 MyBatis stdout 日志（StdOutImpl）。
 
@@ -164,7 +204,7 @@ Python v1 时代 `smart_backup.py` 每 30 分钟检查 + 17:00 强制备份到 `
 | 列表搜索报 SQL 语法错误 | `<where>` 块条件间缺 AND | 检查 Mapper，第二个 `<if>` 必须自带 `AND ` 前缀（13 处同款已修） |
 | 盘点/单据创建 500 且单号卡住 | sequences 与单据表失同步 / 软删占号 | 查 sequences 表 seq 与 MAX(现存单号含软删)，重同步（见 6.3） |
 | vite 504 Outdated Optimize | 旧 vite 僵尸进程 | taskkill 5173 占用进程重启 |
-| 上传图片 404 | 上传目录映射断 | 确认 `I:\yawei-uploads\` 存在 + WebConfig 映射 |
+| 上传图片 404 | 上传目录映射断 | 确认 `I:\uploads\` 存在 + WebConfig 映射 |
 | 数据库磁盘满/连接满 | 连接池默认 10 | Hikari 懒加载：MySQL 恢复后第一次请求自动恢复 |
 | 中文乱码 | 控制台/文件编码 | 保证 UTF-8；MySQL 连接串 charset=utf8mb4 |
 
@@ -205,7 +245,7 @@ UPDATE sequences s SET seq = (
 # 2. 本地验证（vite 5173 快速调试；后端重建）
 # 3. 测试：python scripts/e2e_test.py（168 项）+ python scripts/stress_test.py（11 项），数据自动清理
 # 4. 构建发布
-cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/backend && mvnw.cmd -DskipTests package -q
+cd /c/Users/17815/Desktop/jxc/01-ERP/erp-server/backend && mvnw.cmd -DskipTests package -q
 # 5. 停旧 jar → 起新 jar → curl 200 就绪 → 登录冒烟（列表/搜索各点一下）
 # 6. 更新 docs/08-dev-notes.md（改了什么、踩了什么坑）
 # 7. git 提交（dev 开发 → 验证 → merge main；或 main 直接提交后 dev 快进对齐）
@@ -215,7 +255,7 @@ cd /c/Users/17815/Desktop/yawei/01-ERP/yawei-erp-java/backend && mvnw.cmd -Dskip
 
 - 无 HTTPS、无防火墙白名单——**设计如此**（局域网内部使用）
 - **2026-08-01 已加全局鉴权**：AuthInterceptor 覆盖 /api/**，仅登录接口放行（此前 171/172 端点无 token 可访问，含备份恢复接口——漏洞已修，见 08-dev-notes.md 6.20）
-- **2026-08-02 数据库加固**：root 密码从空改为强密码（`REDACTED_PASSWORD`，存 `yawei-erp-config/db_secret.env`，不进 git/迁移包）。所有 mysql/mysqldump 调用点（BackupController/备份脚本/e2e 测试/恢复演练）已带 -p，漏一个就挂
+- **2026-08-02 数据库加固**：root 密码从空改为强密码（值存 `config/db_secret.env`，不进 git/迁移包）。所有 mysql/mysqldump 调用点（BackupController/备份脚本/e2e 测试/恢复演练）已带 -p，漏一个就挂
 - **2026-08-02 配置接口权限**：/api/config/**（系统配置页）仅 admin 角色（AuthInterceptor 管理白名单，见 6.21）；/api/config/company 放行未登录（登录页要显示品牌）
 - 外网仅通过花生壳映射暴露 8080，鉴权后未登录用户只能看到 401
 - 数据库备份是唯一保险，**定期验证备份可恢复**（临时库演练，别等灾难发生）；2026-08-02 起支持异地备份（见 3.3）

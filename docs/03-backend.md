@@ -1,6 +1,6 @@
 # 后端文档（Spring Boot + MyBatis-Plus）
 
-## 1. 类清单（backend/src/main/java/com/yawei/erp/）
+## 1. 类清单（backend/src/main/java/com/jxc/erp/）
 
 ### Controller（REST 入口，统一前缀 /api）
 | 类 | 职责 | 接口数 |
@@ -32,7 +32,7 @@
 - `PageResult`：分页结果包装
 - `MybatisPlusConfig`：手动 SqlSessionFactory + 分页插件 + SQL 日志
 - `GlobalExceptionHandler`：未捕获异常统一处理（含 multipart 超限）
-- `YaweiErpApplication`：启动类
+- `JxcErpApplication`：启动类
 
 ## 2. 核心业务逻辑
 
@@ -78,4 +78,4 @@ movementInsert(materialId, warehouseId, moveType, refType, refId, qty, before, a
 7. **ONLY_FULL_GROUP_BY**：聚合查询 GROUP BY 需包含功能依赖列
 8. **multipart 上传**：默认 1MB 限制，已调 15MB/30MB；同名多文件用 `List<MultipartFile>`
 9. **时间字段**：start_time/end_time 为 varchar(32)，格式 `YYYY-MM-DD HH:mm:ss`，前端传 `reportDate + ' ' + HH:mm:ss`
-10. **文件路径**：保存用 `I:/yawei-erp-java/web/public/...` 绝对路径（写死），迁移服务器需同步改
+10. **文件路径**：保存用 `I:/erp-server/web/public/...` 绝对路径（写死），迁移服务器需同步改

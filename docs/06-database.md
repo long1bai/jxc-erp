@@ -1,4 +1,4 @@
-# 数据库文档（MySQL 8，库名 yawei_erp）
+# 数据库文档（MySQL 8，库名 jxc_erp）
 
 - 连接：`127.0.0.1:3306`，root 无密码（内网）
 - 字符集：UTF-8（连接 URL 已带 characterEncoding=utf8）
@@ -108,16 +108,16 @@ stock_movements.ref_type+ref_id ──> 各单据（逻辑关联，无物理外�
 
 ```bash
 # 手动备份（系统页"数据备份"按钮 = 执行这个）
-mysqldump -uroot yawei_erp > backup/yawei_erp_YYYYMMDD_HHMMSS.sql
+mysqldump -uroot jxc_erp > backup/jxc_erp_YYYYMMDD_HHMMSS.sql
 
 # 恢复
-mysql -uroot yawei_erp < backup/xxx.sql
+mysql -uroot jxc_erp < backup/xxx.sql
 
 # 或全库导出（含建库）
-mysqldump -uroot --databases yawei_erp > backup/full.sql
+mysqldump -uroot --databases jxc_erp > backup/full.sql
 ```
 
-备份文件在 `I:\yawei-erp-java\backup\`（BackupController 调用 mysqldump，需 mysqldump 在 PATH 或配置路径）。
+备份文件在 `I:\erp-server\backup\`（BackupController 调用 mysqldump，需 mysqldump 在 PATH 或配置路径）。
 
 ## 5. 数据注意
 

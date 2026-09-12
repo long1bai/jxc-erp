@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-jxc ERP 真实感数据生成脚本（2026-08-01）
+进销存 ERP 真实感数据生成脚本（2026-08-01）
 - 目的：让系统看起来像真实使用中（财务/退货/生产/盘点等空模块补数据 + 近3个月活跃业务）
 - 原则：
   1. 全部使用现有真实主数据（客户/供应商/物料/员工/工序/资金账户），不造虚假主数据
@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 MYSQL = r"C:\mysql\8.0.28\bin\mysql.exe"
-DB = "yawei_erp"
+DB = "jxc_erp"
 random.seed(20260801)
 TAG = "XT-"
 
@@ -161,7 +161,7 @@ def fmt(v):
 
 
 def main():
-    print("== jxc ERP 真实感数据生成 ==")
+    print("== 进销存 ERP 真实感数据生成 ==")
 
     # ---------- 加载主数据 ----------
     customers = sql("SELECT id, name FROM customers WHERE deleted=0", fetch=True)

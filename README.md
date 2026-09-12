@@ -1,6 +1,6 @@
-# jxc电子 ERP（Java 版）
+# 工厂生产经营一体化管理系统（Java 版）
 
-示例公司有限公司内部 ERP 系统。工厂：（公司地址），电话 （联系电话）（（联系人））。
+小型工厂生产经营一体化管理系统（进销存 + 生产报工 + 财务，轻量 ERP）。部署环境：（公司地址），电话 （联系电话）（（联系人））。
 
 ## 文档导航（docs/）
 
@@ -23,21 +23,21 @@
 
 - 前端：Vue 3 + Vite + Element Plus + Pinia（`web/`）
 - 后端：Java 21 + Spring Boot 4.1 + MyBatis-Plus（`backend/`）
-- 数据库：MySQL（库名 `yawei_erp`，root 无密码，`db/init.sql` 建表）
-- AI：阿里云 DashScope（qwen-plus 报价助手、qwen3-vl-plus 拍照识别），Key 配置沿用旧 Python 版 `I:\yawei-erp\photo_config.json` / `ai_config.json`
+- 数据库：MySQL（库名 `jxc_erp`，root 无密码，`db/init.sql` 建表）
+- AI：阿里云 DashScope（qwen-plus 报价助手、qwen3-vl-plus 拍照识别），Key 配置沿用旧 Python 版 `I:\erp-server\photo_config.json` / `ai_config.json`
 
-旧 Python 版（FastAPI + SQLite）在 `I:\yawei-erp`，端口 8000，**已于 2026-08-01 切换后停用**（数据已完整迁入 v2 并核验一致；如需回查历史数据可重启，勿再录单）。
+旧 Python 版（FastAPI + SQLite）在 `I:\erp-server`，端口 8000，**已于 2026-08-01 切换后停用**（数据已完整迁入 v2 并核验一致；如需回查历史数据可重启，勿再录单）。
 
 ## 启动与构建
 
 ```bash
 # 后端（8080）：先编译再启动
-cd /i/yawei-erp-java/backend
+cd /i/erp-server/backend
 M2_HOME='C:\maven\apache-maven-3.9.9' cmd /c "C:\maven\apache-maven-3.9.9\bin\mvn.cmd -o -DskipTests package"   # 构建（-o 离线；mvnw 会卡在下载 wrapper，用本机 maven）
-"E:\Program Files\Java\jdk-21\bin\java.exe" -jar target/yawei-erp-0.0.1-SNAPSHOT.jar   # 运行
+"E:\Program Files\Java\jdk-21\bin\java.exe" -jar target/erp-server-0.0.1-SNAPSHOT.jar   # 运行
 
 # 前端（5173，代理 /api → 8080）
-cd /i/yawei-erp-java/web && npm run dev
+cd /i/erp-server/web && npm run dev
 # 生产静态包（后端不托管 web/dist，当前以 vite dev 为准）
 npm run build
 ```
@@ -49,8 +49,8 @@ npm run build
 ## 目录结构
 
 ```
-yawei-erp-java/
-├── backend/src/main/java/com/yawei/erp/   # 单包结构：Controller + Mapper(MyBatis注解SQL) + 实体
+erp-server/
+├── backend/src/main/java/com/jxc/erp/   # 单包结构：Controller + Mapper(MyBatis注解SQL) + 实体
 │   ├── WorkController.java / WorkMapper.java      # 报工模块（分组/员工/工序/打卡/统计/扣料）
 │   ├── MaterialController.java / TradeController... # 物料/进销存/库存
 │   ├── AuthController.java / SessionStore.java     # 登录（users 表）
@@ -121,7 +121,7 @@ yawei-erp-java/
 6. 删除报工（/work/reports/{id} DELETE）会回补库存流水；取消进行中报工是直接删行不留脏数据
 7. `mvnw` 在本机不可用（wrapper 下载被墙），一律用 `C:\maven\apache-maven-3.9.9` 构建
 8. 生产/局域网访问用 5173（vite dev）即可；8080 只出 API
-9. MyBatis-Plus 3.5.17 在 Spring Boot 4 下自动配置失效，需手动建 SqlSessionFactory（见 YaweiErpApplication/配置类）
+9. MyBatis-Plus 3.5.17 在 Spring Boot 4 下自动配置失效，需手动建 SqlSessionFactory（见 JxcErpApplication/配置类）
 10. **`SELECT wr.*` 与子查询别名同名列冲突**：work_reports 表本身有 image_count 列，列表查询再加 `(SELECT COUNT(*) ...) AS image_count` 会重复列名，MyBatis 取到表列值（恒 0）。带别名的列表查询必须显式列出列名，不要 `wr.*`
 11. 图片上传默认限制单文件 1MB，已在 application.yml 调大到 15MB/30MB；报工照片存 `web/public/uploads/work/`（vite public 目录可直接访问），清理时只删自己的测试文件，勿按前缀全删（会误删用户照片）
 

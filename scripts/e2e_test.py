@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-jxcERP v2 全功能 E2E 测试脚本 v3
+进销存ERP v2 全功能 E2E 测试脚本 v3
 - 通过 REST API 走通全部业务模块：基础资料/采购/销售/BOM/生产/库存/报工/财务/报表/系统/AI
 - 测试数据名称带运行序号，可重复执行；结束后 SQL 全量清理测试数据（生产库不留脏数据）
 - 库存断言基于 stock_movements 流水汇总
-- 结果输出: 控制台汇总 + I:\yawei-erp-java\docs\test-reports\<日期>-e2e-test.md
+- 结果输出: 控制台汇总 + I:\erp-server\docs\test-reports\<日期>-e2e-test.md
 """
 import io
 import json
@@ -24,8 +24,8 @@ PREFIX = "【测试】"
 TAG = datetime.now().strftime("%Y%m%d-%H%M%S")
 SUF = TAG[-4:]
 RESULTS = []
-MYSQL = r"C:\Users\17815\Desktop\yawei\01-ERP\mysql\8.0.28\bin\mysql.exe"
-DB_PASS_REF = r"REDACTED_PASSWORD"
+MYSQL = r"C:\Users\17815\Desktop\jxc\01-ERP\mysql\8.0.28\bin\mysql.exe"
+from db_secret import DB_AUTH   # 数据库凭据从 config/db_secret.env 读，密码不进代码
 
 
 def api(method, path, body=None, params=None, raw_bytes=None, content_type="application/json", timeout=40):
@@ -59,7 +59,7 @@ def api(method, path, body=None, params=None, raw_bytes=None, content_type="appl
 
 
 def multipart(fields, files=None):
-    boundary = "----YaweiTestBoundary" + uuid.uuid4().hex
+    boundary = "----JxcTestBoundary" + uuid.uuid4().hex
     buf = io.BytesIO()
     for k, v in fields.items():
         buf.write(("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n" % (boundary, k, v)).encode("utf-8"))
@@ -338,7 +338,7 @@ def mod_po_order(base):
     # 入库单关联检查：receive 生成的采购单 po_order_id 指向本订单（查库验证）
     linked = 0
     try:
-        p = subprocess.run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "yawei_erp", "-N", "-e",
+        p = subprocess.run([MYSQL, "-uroot"] + DB_AUTH + ["jxc_erp", "-N", "-e",
                             "SELECT COUNT(*) FROM purchase_orders WHERE po_order_id=%s AND deleted=0" % po_id],
                            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
         linked = int((p.stdout or "0").strip() or 0)
@@ -616,7 +616,8 @@ def mod_system():
     rec("数据字典(后端下发)", ok_of((st, r)) and len(d.get("dicts", [])) > 0, "共%s类" % len(d.get("dicts", [])))
     st, r = api("GET", "/api/config/company")
     d = data_of((st, r)) or {}
-    rec("公司信息(后端下发)", ok_of((st, r)) and bool(d.get("companyName")), str(d)[:120])
+    rec("公司信息(后端下发)", ok_of((st, r)) and "companyName" in d and "systemName" in d,
+        "companyName=%r systemName=%r" % (d.get("companyName"), d.get("systemName")))
     uname = "testuser_" + SUF
     st, r = api("POST", "/api/users", {"username": uname, "password": "123456", "displayName": PREFIX + "用户-" + SUF, "role": "user"})
     uid = (data_of((st, r)) or {}).get("id")
@@ -714,7 +715,7 @@ UPDATE sequences s SET seq = (SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(transfer_
 SET FOREIGN_KEY_CHECKS=1;
 """
     try:
-        p = subprocess.run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "yawei_erp", "-e", sql], capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace")
+        p = subprocess.run([MYSQL, "-uroot"] + DB_AUTH + ["jxc_erp", "-e", sql], capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace")
         if p.returncode == 0:
             rec("SQL 清理测试数据", True, "生产库已清理")
         else:
@@ -725,7 +726,7 @@ SET FOREIGN_KEY_CHECKS=1;
 
 def main():
     t0 = time.time()
-    print("jxcERP v2 全功能 E2E 测试 v3  tag=%s" % TAG)
+    print("进销存ERP v2 全功能 E2E 测试 v3  tag=%s" % TAG)
     mod_login()
     if not TOKEN:
         print("登录失败，终止。")
@@ -755,11 +756,11 @@ def main():
         for name, ok, detail in RESULTS:
             if not ok:
                 print("  FAIL %s | %s" % (name, detail[:200]))
-    out_dir = r"C:\Users\17815\Desktop\yawei\01-ERP\yawei-erp-java\docs\test-reports"
+    out_dir = r"C:\Users\17815\Desktop\jxc\01-ERP\erp-server\docs\test-reports"
     os.makedirs(out_dir, exist_ok=True)
     fname = os.path.join(out_dir, "%s-e2e-test.md" % datetime.now().strftime("%Y-%m-%d"))
     with open(fname, "w", encoding="utf-8") as f:
-        f.write("# jxcERP v2 全功能 E2E 测试报告\n\n")
+        f.write("# 进销存ERP v2 全功能 E2E 测试报告\n\n")
         f.write("- 时间：%s\n- 环境：http://127.0.0.1:8080\n- 测试数据：运行后已全量清理（SQL），生产库不留脏数据\n\n" % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         f.write("## 结果汇总\n\n| 模块 | 通过 | 失败 |\n|---|---|---|\n")
         mods = {}

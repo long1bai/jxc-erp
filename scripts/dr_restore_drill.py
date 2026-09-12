@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-jxc ERP v2 恢复演练脚本（2026-08-01 新增，容灾配套）
+进销存 ERP v2 恢复演练脚本（2026-08-01 新增，容灾配套）
 - 从 H 盘容灾备份取最新一天的 SQL → 建临时库恢复 → 冒烟验证
 - 验证"备份真的能恢复"（防止备份损坏/不完整），不碰生产库
 - 用法：python scripts/dr_restore_drill.py [日期YYYYMMDD]  （缺省=最新一天）
@@ -14,10 +14,10 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-MYSQL = r"C:\Users\17815\Desktop\yawei\01-ERP\mysql\8.0.28\bin\mysql.exe"
-DB_PASS_REF = r"REDACTED_PASSWORD"
-BACKUP_ROOT = Path(r"H:\jxc系统备份\ERP")
-PROD_DB = "yawei_erp"
+MYSQL = r"C:\Users\17815\Desktop\jxc\01-ERP\mysql\8.0.28\bin\mysql.exe"
+from db_secret import DB_AUTH   # 数据库凭据从 config/db_secret.env 读，密码不进代码
+BACKUP_ROOT = Path(r"H:\进销存系统备份\ERP")
+PROD_DB = "jxc_erp"
 
 # 数据层冒烟：表名 → 期望至少多少行（宽松下限，防备份是空壳）
 SMOKE_TABLES = {
@@ -51,7 +51,7 @@ def main():
             print("FAIL: H 盘无容灾备份目录")
             return 1
         day = candidates[0].name
-        sql_files = sorted(candidates[0].glob("yawei_erp_*.sql"), reverse=True)
+        sql_files = sorted(candidates[0].glob("jxc_erp_*.sql"), reverse=True)
         if not sql_files:
             print("FAIL: %s 目录无 SQL 备份" % day)
             return 1
@@ -60,8 +60,8 @@ def main():
     print("== 恢复演练 day=%s file=%s ==" % (day, sql_file.name))
 
     # 2. 建临时库（幂等：先删后建）
-    tmp_db = "yawei_drill_%s" % datetime.now().strftime("%H%M%S")
-    p = run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-e", "DROP DATABASE IF EXISTS `%s`; CREATE DATABASE `%s` CHARACTER SET utf8mb4;" % (tmp_db, tmp_db)])
+    tmp_db = "jxc_drill_%s" % datetime.now().strftime("%H%M%S")
+    p = run([MYSQL, "-uroot"] + DB_AUTH + ["-e", "DROP DATABASE IF EXISTS `%s`; CREATE DATABASE `%s` CHARACTER SET utf8mb4;" % (tmp_db, tmp_db)])
     if p.returncode != 0:
         print("FAIL: 建临时库 %s" % (p.stderr or "")[:200])
         return 1
@@ -73,7 +73,7 @@ def main():
     except Exception as e:
         print("FAIL: 读备份文件 %s" % str(e)[:200])
         return 1
-    p = subprocess.run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, tmp_db], input=sql_text,
+    p = subprocess.run([MYSQL, "-uroot"] + DB_AUTH + [tmp_db], input=sql_text,
                        capture_output=True, text=True, timeout=900,
                        encoding="utf-8", errors="replace")
     if p.returncode != 0:
@@ -84,10 +84,10 @@ def main():
     # 4. 数据层冒烟
     fails = []
     # 4a. 表数量对比（备份库 vs 生产库，应一致）
-    p = run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-N", "-e",
+    p = run([MYSQL, "-uroot"] + DB_AUTH + ["-N", "-e",
              "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='%s'" % tmp_db])
     tmp_tables = int(p.stdout.strip() or 0)
-    p = run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-N", "-e",
+    p = run([MYSQL, "-uroot"] + DB_AUTH + ["-N", "-e",
              "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='%s'" % PROD_DB])
     prod_tables = int(p.stdout.strip() or 0)
     print("  表数量: 备份=%d 生产=%d %s" % (tmp_tables, prod_tables, "OK" if tmp_tables == prod_tables else "⚠ 不一致"))
@@ -96,7 +96,7 @@ def main():
 
     # 4b. 关键表行数抽查
     for t, expect in SMOKE_TABLES.items():
-        p = run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-N", "-e",
+        p = run([MYSQL, "-uroot"] + DB_AUTH + ["-N", "-e",
                  "SELECT COUNT(*) FROM `%s`.`%s`" % (tmp_db, t)])
         if p.returncode != 0:
             fails.append("%s 查询失败" % t)
@@ -110,13 +110,13 @@ def main():
             fails.append("%s 行数不足(%d)" % (t, n))
 
     # 4c. 最新业务数据存在性（确保备份不是很久以前的）
-    p = run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-N", "-e",
+    p = run([MYSQL, "-uroot"] + DB_AUTH + ["-N", "-e",
              "SELECT COALESCE(MAX(created_at),'') FROM `%s`.`purchase_orders`" % tmp_db])
     latest = p.stdout.strip()
     print("  备份中最近采购单时间: %s" % (latest or "(空)"))
 
     # 5. 清理临时库
-    run([MYSQL, "-uroot", "-p%s" % DB_PASS_REF, "-e", "DROP DATABASE IF EXISTS `%s`" % tmp_db])
+    run([MYSQL, "-uroot"] + DB_AUTH + ["-e", "DROP DATABASE IF EXISTS `%s`" % tmp_db])
     print("  临时库已清理")
 
     if fails:

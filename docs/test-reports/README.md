@@ -1,4 +1,4 @@
-# jxcERP v2 测试资产
+# 进销存ERP v2 测试资产
 
 本目录存放自动化测试脚本与测试报告。所有测试都跑在**真实生产库**上（http://127.0.0.1:8080），测试数据统一「【测试】」/「【压测】」前缀，**脚本结束自动全量清理 + 单据序列重同步**，不留脏数据。
 
@@ -6,10 +6,10 @@
 
 | 脚本 | 覆盖 | 断言数 | 运行 |
 |---|---|---|---|
-| `scripts/e2e_test.py` | 全功能回归：基础资料/采购/销售/BOM/生产/库存/报工/财务/报表/系统/AI | 168 项 | `cd /i/yawei-erp-java/scripts && python e2e_test.py` |
-| `scripts/stress_test.py` | 并发压测：30并发订单/20并发扣减/10并发打卡/10并发盘点/20×60接口负载 | 11 项 | `cd /i/yawei-erp-java/scripts && python stress_test.py` |
+| `scripts/e2e_test.py` | 全功能回归：基础资料/采购/销售/BOM/生产/库存/报工/财务/报表/系统/AI | 168 项 | `cd /i/erp-server/scripts && python e2e_test.py` |
+| `scripts/stress_test.py` | 并发压测：30并发订单/20并发扣减/10并发打卡/10并发盘点/20×60接口负载 | 11 项 | `cd /i/erp-server/scripts && python stress_test.py` |
 
-前置条件：后端 8080 运行中（`java -jar target/yawei-erp-0.0.1-SNAPSHOT.jar`）、MySQL 3306 正常。
+前置条件：后端 8080 运行中（`java -jar target/erp-server-0.0.1-SNAPSHOT.jar`）、MySQL 3306 正常。
 
 ## 报告文件
 

@@ -1,4 +1,4 @@
-# 技术架构文档（jxc电子 ERP）
+# 技术架构文档（工厂生产经营一体化管理系统）
 
 ## 1. 技术栈
 
@@ -8,7 +8,7 @@
 | 前端 | Mermaid | 11.x | 使用指南流程图（改文字即改图） |
 | 后端 | Java + Spring Boot | JDK 21 / Spring Boot 4.1 | `backend/` 目录 |
 | 持久层 | MyBatis-Plus + MyBatis | 3.5.17 | 注解 SQL，无 XML mapper |
-| 数据库 | MySQL | 8.0 | 库名 `yawei_erp`，root 密码 `REDACTED_PASSWORD`（2026-08-02 加固，存 db_secret.env） |
+| 数据库 | MySQL | 8.0 | 库名 `jxc_erp`，root 密码存 `config/db_secret.env`（2026-08-02 加固，不进 git） |
 | AI | DashScope qwen-plus / qwen3-vl-plus | - | 报价聊天 / 拍照识别；模型/提示词可配置（ai_config.json） |
 
 ## 2. 架构总览
@@ -20,7 +20,7 @@
 Vue3 SPA (web/src)          ── axios (web/src/utils/request.js) ──►  /api/*  ──►  后端 8080
     │ 路由守卫按角色(employee/admin/boss/dev)过滤
     ▼
-Spring Boot (backend/src/main/java/com/yawei/erp)   ← 2026-08-02 分层重构
+Spring Boot (backend/src/main/java/com/jxc/erp)   ← 2026-08-02 分层重构
     ├── controller/    REST 接口（ApiResponse 统一包装 {success,data,error}；只做参数绑定）
     ├── service/      业务逻辑（Work/Photo/Finance/PoOrder/Production 已抽，CRUD 类后续）
     ├── mapper/       MyBatis 注解 SQL（含 <script> 动态 SQL）
@@ -32,9 +32,9 @@ Spring Boot (backend/src/main/java/com/yawei/erp)   ← 2026-08-02 分层重构
     ├── client/       DashScopeClient（模型/提示词从配置读）
     ├── interceptor/  OperationLogInterceptor
     ├── util/         SequenceUtil/MoneyUtils
-    └── YaweiErpApplication   启动类
+    └── JxcErpApplication   启动类
     ▼
-MySQL 8 (yawei_erp, 27 张表; sys_config 存品牌/业务参数)
+MySQL 8 (jxc_erp, 27 张表; sys_config 存品牌/业务参数)
 ```
 
 - 前后端分离部署：`vite dev` 时 5173 出页面（`web/vite.config.js` 代理 /api → 8080）；8080 只出 API
@@ -43,11 +43,11 @@ MySQL 8 (yawei_erp, 27 张表; sys_config 存品牌/业务参数)
 ## 3. 目录结构
 
 ```
-I:\yawei-erp-java\
+I:\erp-server\
 ├── backend/                     # Spring Boot 后端
-│   ├── src/main/java/com/yawei/erp/   # 全部类平铺（Controller/Mapper/实体/配置）
+│   ├── src/main/java/com/jxc/erp/   # 全部类平铺（Controller/Mapper/实体/配置）
 │   ├── src/main/resources/application.yml
-│   └── target/yawei-erp-0.0.1-SNAPSHOT.jar   # 构建产物
+│   └── target/erp-server-0.0.1-SNAPSHOT.jar   # 构建产物
 ├── web/                         # Vue3 前端
 │   ├── src/views/               # 28 个页面组件
 │   ├── src/router/index.js      # 路由（meta.roles 角色控制）
@@ -66,7 +66,7 @@ I:\yawei-erp-java\
 cd backend
 M2_HOME='C:\maven\apache-maven-3.9.9' cmd /c "C:\\maven\\apache-maven-3.9.9\\bin\\mvn.cmd -o -DskipTests package"
 # 启动（jar 被占用时先 netstat 找 8080 真实 PID 再 taskkill /PID xx /F）
-"E:\Program Files\Java\jdk-21\bin\java.exe" -jar target/yawei-erp-0.0.1-SNAPSHOT.jar > server.log 2>&1
+"E:\Program Files\Java\jdk-21\bin\java.exe" -jar target/erp-server-0.0.1-SNAPSHOT.jar > server.log 2>&1
 
 # 前端
 cd web

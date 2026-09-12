@@ -19,7 +19,7 @@
 
 - **送货单**：一式两联（客户联 + 存根联）、金额大写、每页 ≥5 行（不足补空行）、专业无 emoji
 - **对账单**（象过河样式，客户/供应商通用）：
-  - 抬头：示例公司有限公司
+  - 抬头：示例公司
   - 地址：（公司地址）；电话 （联系电话）；联系人 （联系人）；经手人 （经手人）
   - 列：序号 / 单据编号 / 日期 / 订单号码 / 商品编码 / 商品名称 / 规格 / 单位 / 数量 / 含税单价 / 金额
   - 底部："5 日内回传"
@@ -82,8 +82,8 @@
   - sequences（编号生成器）不做逻辑删除
 ## 6.6 项目结构与上传目录（2026-07-31）
 
-- **上传图片目录：`I:\yawei-uploads\`**（报工照片存 `I:\yawei-uploads\work\`，旧日期目录保留）——**已移出 web/public**（vite build 不再复制 189MB 图片，dist 5.2MB）
-- 访问链路：`/uploads/**` → 后端静态映射（WebConfig `file:I:/yawei-uploads/`）；vite dev 走 5173 代理 `/uploads → 8080`（vite.config.js 已配）
+- **上传图片目录：`I:\uploads\`**（报工照片存 `I:\uploads\work\`，旧日期目录保留）——**已移出 web/public**（vite build 不再复制 189MB 图片，dist 5.2MB）
+- 访问链路：`/uploads/**` → 后端静态映射（WebConfig `file:I:/uploads/`）；vite dev 走 5173 代理 `/uploads → 8080`（vite.config.js 已配）
 - ~~后端结构约定：单包平铺~~ **2026-08-02 已分层重构**（见 6.24）：controller/service/mapper/entity/dto/common/config/security/client/interceptor/util 子包；命名 XxxController/XxxMapper/实体 一一对应
 - 前端：views 按业务域命名；复用 PageHeader/PaginatedTable；HelloWorld 脚手架残留已删
 - 临时脚本归 `scripts/`（test_photo_flow.py/download_mysql.py）；顶层只留 backend/web/docs/db/backup/scripts + README + build_backend.bat
@@ -139,7 +139,7 @@
   - 自动生成 20+ 接口文档；生产环境可配 `springdoc.api-docs.enabled=false` 关闭
 - **Git 分支规范**：`git init -b main` + .gitignore（target/node_modules/dist/backup/*.log）+ 首次提交（255 文件基线）+ `git branch dev`
   - 以后：新功能在 **dev** 分支开发 → 验证通过 → 合并 main（`git checkout main && git merge dev`）
-  - 本地 git 用户：YaweiDev <dev@yawei.local>（git config user.name/email）
+  - 本地 git 用户：JxcDev <dev@jxc.local>（git config user.name/email）
 
 ## 6.15 前端增量改进（2026-08-01，多角色分析后实施）
 
@@ -181,7 +181,7 @@
 
 ## 7. AI 集成
 
-- **拍照入库**：阿里云 DashScope `qwen3-vl-plus`（3-5 秒快速），key 在 `backend/src/main/resources/application.yml` 与旧版 `I:\yawei-erp\photo_config.json`
+- **拍照入库**：阿里云 DashScope `qwen3-vl-plus`（3-5 秒快速），key 在 `backend/src/main/resources/application.yml` 与旧版 `I:\erp-server\photo_config.json`
   - 备选：SiliconFlow 的 Qwen3-VL-32B-Instruct
   - **坑**：电线类物料的"料号/规格"列常被识别重复，需人工校正数量和单价
   - qwen3.7-max 手写识别更好但 20-80 秒太慢，用户不接受
@@ -191,8 +191,8 @@
 
 - 后端：Java 21（`E:\Program Files\Java\jdk-21\bin\java.exe`），Maven `C:\maven\apache-maven-3.9.9`（**mvnw 被墙不能用**）
 - 构建命令：`cmd /c "C:\maven\apache-maven-3.9.9\bin\mvn.cmd -o -DskipTests package"`（后端）；`npm run build`（前端，恒 3168-3170 modules）
-- MySQL：`C:/mysql/8.0.28/bin/mysql.exe -uroot yawei_erp`（**Windows Python/脚本不识别 /c/mysql 路径**）
-- 服务：8080 后端 jar；5173 vite dev；8000 旧 Python 版（`I:\yawei-erp`，启动 `PYTHONPATH= .venv/Scripts/python run.py`）
+- MySQL：`C:/mysql/8.0.28/bin/mysql.exe -uroot jxc_erp`（**Windows Python/脚本不识别 /c/mysql 路径**）
+- 服务：8080 后端 jar；5173 vite dev；8000 旧 Python 版（`I:\erp-server`，启动 `PYTHONPATH= .venv/Scripts/python run.py`）
 - 权限：4 角色（员工/管理员/老板/开发）菜单级；**后端 API 不鉴权**（内部系统）
 - 仓库：入库可选仓 + 按仓筛选；出库仍从 1 号仓扣
 - 报工打卡：拍照 ≤3 张存 `web/public/uploads/work/`、时间可改；使用指南 Help 页 Mermaid 流程图
@@ -252,7 +252,7 @@
   - 测试数据统一「【测试】」前缀 + 运行序号（可并发跑不撞名）
   - 结束自动 SQL 清理（生产库不留脏数据）+ **单据序列重同步**（见下）
   - 报告输出：`docs/test-reports/<日期>-e2e-test.md`
-  - 运行：`cd /i/yawei-erp-java/scripts && python e2e_test.py`（后端须在 8080 运行）
+  - 运行：`cd /i/erp-server/scripts && python e2e_test.py`（后端须在 8080 运行）
 
 ### Bug 1：所有关键词搜索 500（严重）
 - 现象：客户/供应商/物料/订单/送货/采购/退货/员工/工序/BOM 列表带 keyword 搜索全部报 SQL 语法错误
@@ -287,7 +287,7 @@
 
 ### 测试资产
 - 自动化压测：`scripts/stress_test.py`（5 场景：30并发订单/20并发送货扣减/10并发打卡/10并发盘点/20×60接口负载）
-- 运行：`cd /i/yawei-erp-java/scripts && python stress_test.py`（自动清理压测数据 + 序列重同步）
+- 运行：`cd /i/erp-server/scripts && python stress_test.py`（自动清理压测数据 + 序列重同步）
 
 ### 压测结论（11/11 通过）
 | 场景 | 结果 |
@@ -362,7 +362,7 @@
 
 ### 实现（backend/.../SessionStore.java）
 - HS256 对称签名（JDK `javax.crypto.Mac`，零新依赖），payload 含 id/username/displayName/role/iat/exp
-- **密钥持久化**：`app.jwt-secret-file`（默认 `I:/yawei-erp/jwt_secret.txt`），首次启动自动生成 32 字节随机密钥落盘，**重启不变 → 旧 token 跨重启有效**
+- **密钥持久化**：`app.jwt-secret-file`（默认 `I:/erp-server/jwt_secret.txt`），首次启动自动生成 32 字节随机密钥落盘，**重启不变 → 旧 token 跨重启有效**
 - **过期时间**：`app.jwt-expire-days`（默认 7 天），过期后 verify 返回 null → 401
 - 公共接口 `create/verify/destroy` 签名不变 → **全部调用点（AuthController/CatalogController/AuthInterceptor/LogController/OperationLogInterceptor/ApprovalController/StockTransferController）零改动**
 - `destroy()` 为 no-op（无状态无法吊销）；登出由前端清 localStorage 完成。若将来需要"踢人/封号立即生效"：短过期 + 黑名单表
@@ -391,14 +391,14 @@
 
 ## 6.24 企业化改造：分层重构 + 产品化配置（2026-08-02，新电脑迁移后）
 
-> 从"jxc内部自用"转向"可卖的产品"。三件事：后端分层重构、配置全抽离、数据库加固+异地备份。
+> 从"进销存内部自用"转向"可卖的产品"。三件事：后端分层重构、配置全抽离、数据库加固+异地备份。
 
 ### A. 后端分层重构（单包 → 五层）
 
-- **之前**：75 个 Java 文件全平铺在 `com.yawei.erp` 单包（Controller 直接调 Mapper，无 Service 层）
+- **之前**：75 个 Java 文件全平铺在 `com.jxc.erp` 单包（Controller 直接调 Mapper，无 Service 层）
 - **之后**：标准分层
   ```
-  com.yawei.erp
+  com.jxc.erp
   ├── controller/ (33)   # 只做参数绑定 + ApiResponse 包装
   ├── service/     (5)   # Work/Photo/Finance/PoOrder/Production（复杂模块已抽，CRUD 类后续补）
   ├── mapper/      (22)  # MyBatis-Plus Mapper
@@ -410,7 +410,7 @@
   ├── client/      (1)   # DashScopeClient
   ├── interceptor/ (1)   # OperationLogInterceptor
   ├── util/        (2)   # SequenceUtil/MoneyUtils
-  └── YaweiErpApplication.java
+  └── JxcErpApplication.java
   ```
 - **Controller 解耦**（之前互相注入/静态调用）：
   - `AuthController.extractToken()` 静态方法 → `security/TokenUtils`（4 处调用改）
@@ -432,7 +432,7 @@
 
 **2. 公司品牌（sys_config 表）**
 - 新增 `system_name` 键（登录页/侧边栏/顶栏标题），`/api/config/company` 返回（已从 AuthInterceptor 放行，**未登录可访问**——登录页要显示品牌）
-- 前端 Layout/Login/Help/打印模板兜底值全部动态化，硬编码"jxc"清空
+- 前端 Layout/Login/Help/打印模板兜底值全部动态化，硬编码"进销存"清空
 - **改品牌 = UPDATE sys_config，不改代码**
 
 **3. 业务流程参数（sys_config 表，2026-08-02 起支持）**
@@ -448,14 +448,13 @@
 
 ### C. 数据库加固 + 异地备份
 
-- **root 密码**：空 → 强密码（`REDACTED_PASSWORD`），存 `yawei-erp-config/db_secret.env`（不进 git/迁移包）
+- **root 密码**：空 → 强密码，存 `config/db_secret.env`（不进 git/迁移包）
 - **连锁改动（漏一个就挂）**：
   - application.yml（内置+外部）`spring.datasource.password`
   - `BackupController` mysqldump 加 `-p`（@Value 读 spring.datasource.password）
-  - `dr_backup.py` 从 db_secret.env 读 DB_PASSWORD
-  - `e2e_test.py` / `dr_restore_drill.py` 的 mysql 调用带 `-p`（DB_PASS_REF）
+  - 脚本侧统一从 `config/db_secret.env` 读：`dr_backup.py` 自行读取，其余脚本 `from db_secret import DB_AUTH`
 - **异地备份**：`dr_backup.py` 支持 `OFF_SITE_BACKUP_DIR`（环境变量或 db_secret.env），本机 backup/daily + 异地双份，30 天保留。本机只有 C 盘单分区，模拟异地 `C:\erp-offsite-backup` 演示；真异地（U盘/网络盘/共享文件夹）改配置即用
-- 备份计划任务 `YaweiERP_DailyBackup` 每日 17:30 仍有效
+- 备份计划任务 `JxcERP_DailyBackup` 每日 17:30 仍有效
 
 ### D. 系统配置页（管理员可视化配置）
 
@@ -468,6 +467,28 @@
 - **前端** `SystemConfig.vue` 三个标签页：🏢 公司信息 / ⚙️ 业务参数 / 🤖 AI 配置；路由 `system/config`（admin）；菜单"系统→系统配置"（仅 admin，MENU_TREE 加 MenuNode）
 - 配置保存**立即生效**（登录页/侧边栏标题、新单据单号等不用重启）
 
+### E. 单据能力中心（动态字段 + 双通道识别 + 导入导出 + 打印，2026-08-04）
+
+> 核心诉求：**所有与现实表单相关的单据**都应具备 导入/导出/打印；**表单可能变**，可手动加字段，也可识别模板加字段。一期用采购单（purchase_orders）打通，跑顺再推广到报工单/领料单等。
+
+- **动态字段粒度 = ②列可变**：字段定义存新元数据表 `doc_field_defs`，值存单据表已有 `ext_json` 列。**只存 + 展示，不参与统计/筛选**（延续 6.5 ext_json 纪律）
+- **doc_field_defs 表**：`doc_type + field_key` UNIQUE；**AUTO_INCREMENT 非雪花**（元数据/配置类表定位，同 sys_config，不进雪花触发器体系）；字段含 field_name（中文列头）/ field_type（text|number|date|select）/ options（select 选项 JSON 数组）/ sort_order / enabled / deleted 软删
+- **双通道模板识别**（默认通道一，可切通道二）：
+  - 通道一（传统，默认）：POI 读首 sheet 表头 + 前 20 行示例推断类型——全日期→date / 全数值→number / distinct≤10 且有重复→select(带 options) / 否则 text；**跳过标准列**（单号/日期/供应商/物料/规格/单位/数量/单价/金额/经手人/备注/装配系统/项目）
+  - 通道二（AI）：复用 DashScopeClient 现成通道——Excel 走 ai_config + qwen-plus（表头+前5行拼文本块）；拍照走 photo_config + qwen3-vl-plus（base64→data URL 多模态，照抄 PhotoService）；parseJson 容错剥 ```，AI 只输出非标准列、field_key 小写下划线、识别不清返回空数组
+- **Excel 选型 = Apache POI 5.4.0**（poi-ooxml）：Java 21 + Spring Boot 4.1 下 EasyExcel 的 cglib 反射兼容风险不可控；POI 纯 JDK API。**坑：SB4.1 BOM 不管理 POI 版本**，必须显式 `<version>5.4.0</version>`（老版本 SB 管）
+- **导入规则**（明细级平铺，PurchaseImportService）：
+  - 一行一条明细；**相同"采购单号"行归组为一单**，空单号每行自成单
+  - 供应商按名前 6 字模糊匹配（仿 PhotoService）、物料按 名称+规格 精确匹配，**匹配失败报行错，不自动建物料**；数量必填 >0
+  - **幂等**：po_no UNIQUE，库中已存在跳过计 skipped，重传同一文件天然幂等。**铁律：绝不回退 sequences 表**（见 6.19）
+  - **⚠️ 幂等判重的坑**：逻辑删除（deleted=1）的旧单**仍占用 po_no UNIQUE 键**，判重若用 `deleted=0` 查不到已删行 → 重传撞唯一键 → 内层 create() 异常被 catch → 外层事务被标记 rollback-only → 报 `Transaction rolled back because it has been marked as rollback-only`。**判重必须用无 deleted 过滤的 `purchaseExists`**（`SELECT id FROM purchase_orders WHERE po_no=?`），导入/批量清理测试单也用物理删除（先子表后主表）
+  - 有错行 → `fail("导入完成，N 行失败", detail={errorRows})`（前端 e.detail 回显错行表）；全成 → `ok(ImportResult)`
+- **采购创建公共服务** `PurchaseCreationService.create(draft, checkApproval)`：三处共用——页面建单（走审批）/ 拍照入库 PhotoService.confirm（**不走审批**，保持原行为）/ 导入（走审批）。抽取时行为逐字节不变（审批钩子 + 库存流水 movementInsertWh("in","purchase")）
+- **模板生成**：固定列 + doc_field_defs 动态列，select 列带下拉（DataValidation，选项超 200 字符跳过下拉）；导出同理拼 ext_json 动态列
+- **前端**：Purchases 页按字段定义动态渲染列表列 + 新建表单项（text→input / number→input-number / date→date-picker / select→el-select）；搜索栏加 字段设置/导入/下载模板/导出 Excel 按钮；操作列加打印；字段设置弹窗（FieldDefDialog）双通道切换默认传统；导入弹窗（ImportDialog）错行回显 + 成功 emit reloaded；打印页 PurchasePrint 仿 DeliveryPrint（样式打印，非套打）
+- **验证**：`scripts/verify_docfields.py`（字段定义 CRUD → 传统识别类型推断 → AI 识别 → 新建单带 ext 落库 → 导入建单+幂等重传 → 导出含动态列 → 清理恢复）；`db/upgrade-doc-fields.sql` 幂等建表
+- **接口**：`/api/doc-fields`（GET list?docType / POST save / DELETE /{id} / POST recognize/excel / POST recognize/ai?inputMode=excel|photo）；`/api/purchases`（POST /import / GET /export?keyword= / GET /import-template）
+
 ### 相关文档
-- 分层重构细节：`references/backend-layering-refactor.md`（yawei-erp-system 技能）
+- 分层重构细节：`references/backend-layering-refactor.md`（erp-server-system 技能）
 - 产品化改造细节：`references/productization-ai-config.md`

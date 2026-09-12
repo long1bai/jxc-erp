@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-jxcERP v2 压力测试脚本
+进销存ERP v2 压力测试脚本
 重点场景：
   1. 并发单号生成（30 并发创建订单）—— 查重复单号/失败率
   2. 并发库存扣减（20 并发送货扣同一物料）—— 查丢更新/负库存
@@ -198,7 +198,7 @@ def stress_seq_first_insert(sup_id, fg_id):
     print("\n== 4. 单据序列并发（10 并发盘点，序列行已存在） ==")
     ds = datetime.now().strftime("%Y%m%d")
     # 确保序列行存在（真实业务场景：当天已开过单）
-    subprocess.run([MYSQL, "-uroot", "yawei_erp", "-e",
+    subprocess.run([MYSQL, "-uroot", "jxc_erp", "-e",
                     "INSERT IGNORE INTO sequences (prefix, year, month, seq) VALUES ('PD:%s', '%s', '%s', 0)"
                     % (ds, ds[:4], ds[4:6])], capture_output=True, timeout=30)
 
@@ -222,7 +222,7 @@ def stress_seq_first_insert(sup_id, fg_id):
     rec("10并发首插盘点单号", ok_n == 10 and not dup_err,
         "成功%d/10 %s" % (ok_n, errs[:2]))
     # 清理本次创建的盘点单（压测数据）
-    subprocess.run([MYSQL, "-uroot", "yawei_erp", "-e",
+    subprocess.run([MYSQL, "-uroot", "jxc_erp", "-e",
                     "DELETE FROM stock_take_items WHERE st_id IN (SELECT id FROM stock_takes WHERE remark LIKE '%【压测】%'); DELETE FROM stock_takes WHERE remark LIKE '%【压测】%';"],
                    capture_output=True, timeout=60)
 
@@ -348,13 +348,13 @@ UPDATE sequences s SET seq = (SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(prt_no,'-
 UPDATE sequences s SET seq = (SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(transfer_no,'-',-1) AS UNSIGNED)),0) FROM stock_transfers WHERE transfer_no LIKE 'ST-{ds}-%') WHERE s.prefix='ST:{ds}';
 SET FOREIGN_KEY_CHECKS=1;
 """
-    p = subprocess.run([MYSQL, "-uroot", "yawei_erp", "-e", sql], capture_output=True, text=True, timeout=120,
+    p = subprocess.run([MYSQL, "-uroot", "jxc_erp", "-e", sql], capture_output=True, text=True, timeout=120,
                        encoding="utf-8", errors="replace")
     rec("清理压测数据", p.returncode == 0, (p.stderr or p.stdout)[:150] if p.returncode else "已清理")
 
 
 def main():
-    print("jxcERP v2 压力测试  tag=%s\n" % TAG)
+    print("进销存ERP v2 压力测试  tag=%s\n" % TAG)
     login()
     base = prepare()
     stress_orders(base["cust"], base["fg"])
@@ -373,11 +373,11 @@ def main():
             print("  FAIL %s | %s" % (name, detail[:180]))
     # 报告落盘（对齐 e2e_test.py）
     import os
-    out_dir = r"I:\yawei-erp-java\docs\test-reports"
+    out_dir = r"I:\erp-server\docs\test-reports"
     os.makedirs(out_dir, exist_ok=True)
     fname = os.path.join(out_dir, "%s-stress-test.md" % datetime.now().strftime("%Y-%m-%d"))
     with open(fname, "w", encoding="utf-8") as f:
-        f.write("# jxcERP v2 压力测试报告\n\n")
+        f.write("# 进销存ERP v2 压力测试报告\n\n")
         f.write("- 时间：%s\n- 环境：http://127.0.0.1:8080\n- 测试数据：运行后已全量清理（SQL）+ 单据序列重同步\n\n" % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         f.write("## 结果汇总\n\n| 测试项 | 结果 | 说明 |\n|---|---|---|\n")
         for name, ok, detail in RESULTS:

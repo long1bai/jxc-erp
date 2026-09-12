@@ -1,6 +1,7 @@
 # ===== 构建产物 =====
 backend/target/
 backend/build.log
+backend/vite.log
 web/node_modules/
 web/dist/
 web/.vite/
@@ -8,11 +9,14 @@ web/.vite/
 # ===== 数据/备份 =====
 backup/
 *.sql
+!db/*.sql
+!backend/*.sql
 
 # ===== IDE =====
 .idea/
 *.iml
 .vscode/
+.github/modernize/
 
 # ===== 系统 =====
 .DS_Store
@@ -31,3 +35,19 @@ scripts/.dr_daemon.lock
 
 # ===== 发布产物 =====
 backend/release/*.jar
+backend/release/server.out
+
+# ===== 凭据与本机配置（绝不入库）=====
+backend/release/config/application.yml
+backend/config/
+scripts/.erp_mode.json
+*.env
+db_secret.env
+jwt_secret.txt
+*.pem
+*.key
+
+# ===== 内部文档（本机保留，不入开源仓库）=====
+docs/12-productization-rename-plan.md
+docs/13-handoff-claude.md
+docs/14-handoff-claude-progress.md
